@@ -54,13 +54,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: `${email} added to your organization` });
     }
 
-    // User doesn't exist — send Supabase invite email
-    const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: { invited_to_org: orgId, invited_role: role, invited_by: invitedBy },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard`,
+    // If user doesn't exist or is not a member yet, create an invitation
+    const { error: inviteError } = await supabase.from("organization_invitations").insert({
+      org_id: orgId,
+      email,
+      role,
+      invited_by: invitedBy,
     });
 
     if (inviteError) {
+      if (inviteError.code === '23505') { // Unique violation
+         return NextResponse.json({ error: "An invitation has already been sent to this email." }, { status: 409 });
+      }
       return NextResponse.json({ error: inviteError.message }, { status: 500 });
     }
 

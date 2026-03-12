@@ -41,6 +41,20 @@ create table if not exists org_members (
 );
 
 -- ──────────────────────────────────────────────────
+-- 3.5. Organization Invitations
+-- ──────────────────────────────────────────────────
+create table if not exists organization_invitations (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references organizations(id) on delete cascade,
+  email text not null,
+  role text not null check (role in ('admin','editor','member')),
+  invited_by uuid references profiles(id),
+  status text default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  created_at timestamptz default now(),
+  unique(org_id, email)
+);
+
+-- ──────────────────────────────────────────────────
 -- 4. Database connections
 -- ──────────────────────────────────────────────────
 create table if not exists database_connections (
@@ -91,6 +105,7 @@ alter table org_members enable row level security;
 alter table database_connections enable row level security;
 alter table db_access_grants enable row level security;
 alter table activity_logs enable row level security;
+alter table organization_invitations enable row level security;
 
 -- ──────────────────────────────────────────────────
 -- 8. Trigger: auto-create profile on signup
@@ -250,3 +265,12 @@ create policy "Members view org logs" on activity_logs
 drop policy if exists "Anyone can insert logs" on activity_logs;
 create policy "Anyone can insert logs" on activity_logs
   for insert with check (true);
+
+-- Organization invitations
+drop policy if exists "Users view their own invitations by email" on organization_invitations;
+create policy "Users view their own invitations by email" on organization_invitations
+  for select using (email = auth.jwt() ->> 'email');
+
+drop policy if exists "Admins view org invitations" on organization_invitations;
+create policy "Admins view org invitations" on organization_invitations
+  for all using (is_org_admin(org_id));

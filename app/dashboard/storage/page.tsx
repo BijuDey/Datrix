@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { TopBar, PageHeader } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { HardDrive, Plus, Folder, File, Upload, Download, Trash2, ArrowLeft, AlertCircle } from "lucide-react";
+import { HardDrive, Plus, Folder, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
-import { formatBytes, formatRelativeTime, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface S3Connection {
   id: string;
@@ -17,6 +18,7 @@ interface S3Connection {
 
 export default function StoragePage() {
   const { org, isAdmin } = useAuth();
+  const router = useRouter();
   const [connections, setConnections] = useState<S3Connection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,23 +82,12 @@ export default function StoragePage() {
                 </div>
                 <Badge variant="default">S3</Badge>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="outline" size="sm" icon={<Folder size={12} />}>
+                  <Button variant="outline" size="sm" icon={<Folder size={12} />} onClick={() => router.push(`/dashboard/storage/${conn.id}`)}>
                     Browse
                   </Button>
                 </div>
               </div>
             ))}
-
-            {/* Info box */}
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/15">
-              <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-[12px] font-semibold text-amber-400 mb-0.5">Storage Browser coming soon</p>
-                <p className="text-[12px] text-[#8a8a8a] leading-relaxed">
-                  Full file browser with upload, download, delete, and preview is in development. Your connection credentials are saved and encrypted.
-                </p>
-              </div>
-            </div>
           </div>
         )}
       </div>

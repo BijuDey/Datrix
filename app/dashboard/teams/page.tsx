@@ -98,7 +98,7 @@ export default function TeamsPage() {
 
     const { data } = await supabase
       .from("org_members")
-      .select("id, user_id, role, created_at, profiles(full_name)")
+      .select("id, user_id, role, created_at, profiles!user_id(full_name)")
       .eq("org_id", org.id)
       .order("created_at", { ascending: true });
 

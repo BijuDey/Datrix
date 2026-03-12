@@ -62,7 +62,7 @@ export default function AdminPage() {
 
     const { data: memberRoles } = await supabase
       .from("org_members")
-      .select("user_id, role, profiles(full_name)")
+      .select("user_id, role, profiles!user_id(full_name)")
       .eq("org_id", org.id);
 
     const roleMap: Record<string, { role: string; name: string }> = {};

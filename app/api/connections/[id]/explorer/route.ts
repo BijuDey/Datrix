@@ -31,8 +31,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const config = JSON.parse(decrypt(connection.encrypted_config));
     
-    let resultRows = [];
-    let fields = [];
+    let resultRows: any[] = [];
+    let fields: { name: string }[] = [];
     let rowCount = 0;
 
     // ----- PostgreSQL implementation -----
@@ -55,8 +55,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       const client = new (Client as any)(clientOptions);
 
+      let duration = 0;
+      let executedQuery = "";
+      
       try {
         await client.connect();
+        const startTime = performance.now();
         
         let qs = "";
         let values: any[] = [];
@@ -71,7 +75,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                if (f.operator === 'contains') {
                  values.push(`%${f.value}%`);
                  return `"${f.column.replace(/"/g, '""')}" ILIKE $${values.length}`;
+               } else if (f.operator === 'eq') {
+                 values.push(f.value);
+                 return `"${f.column.replace(/"/g, '""')}" = $${values.length}`;
+               } else if (f.operator === 'neq') {
+                 values.push(f.value);
+                 return `"${f.column.replace(/"/g, '""')}" <> $${values.length}`;
+               } else if (f.operator === 'gt') {
+                 values.push(f.value);
+                 return `"${f.column.replace(/"/g, '""')}" > $${values.length}`;
+               } else if (f.operator === 'lt') {
+                 values.push(f.value);
+                 return `"${f.column.replace(/"/g, '""')}" < $${values.length}`;
+               } else if (f.operator === 'isnull') {
+                 return `"${f.column.replace(/"/g, '""')}" IS NULL`;
+               } else if (f.operator === 'notnull') {
+                 return `"${f.column.replace(/"/g, '""')}" IS NOT NULL`;
                } else {
+                 // Fallback to equals
                  values.push(f.value);
                  return `"${f.column.replace(/"/g, '""')}" = $${values.length}`;
                }
@@ -118,15 +139,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
            throw new Error("Invalid action");
         }
 
+        executedQuery = qs;
         const res = await client.query(qs, values);
+        duration = Math.round(performance.now() - startTime);
         
         resultRows = res.rows || [];
         fields = res.fields ? res.fields.map((f: any) => ({ name: f.name })) : [];
         rowCount = typeof res.rowCount === "number" ? res.rowCount : resultRows.length;
 
         await client.end();
+        
+        return NextResponse.json({
+          action,
+          table,
+          fields,
+          rows: resultRows,
+          rowCount,
+          executedQuery,
+          duration
+        });
+
       } catch (err: any) {
-        return NextResponse.json({ error: err.message }, { status: 400 });
+        return NextResponse.json({ error: err.message, executedQuery, duration }, { status: 400 });
       }
     } 
     // ----- MySQL implementation -----
@@ -148,7 +182,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
        const conn = await (mysql as any).createConnection(clientOptions);
 
+       let duration = 0;
+       let executedQuery = "";
        try {
+         const startTime = performance.now();
          let qs = "";
          let values: any[] = [];
          
@@ -161,6 +198,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                   if (f.operator === 'contains') {
                      values.push(`%${f.value}%`);
                      return `\`${f.column.replace(/`/g, '``')}\` LIKE ?`;
+                  } else if (f.operator === 'eq') {
+                     values.push(f.value);
+                     return `\`${f.column.replace(/`/g, '``')}\` = ?`;
+                  } else if (f.operator === 'neq') {
+                     values.push(f.value);
+                     return `\`${f.column.replace(/`/g, '``')}\` <> ?`;
+                  } else if (f.operator === 'gt') {
+                     values.push(f.value);
+                     return `\`${f.column.replace(/`/g, '``')}\` > ?`;
+                  } else if (f.operator === 'lt') {
+                     values.push(f.value);
+                     return `\`${f.column.replace(/`/g, '``')}\` < ?`;
+                  } else if (f.operator === 'isnull') {
+                     return `\`${f.column.replace(/`/g, '``')}\` IS NULL`;
+                  } else if (f.operator === 'notnull') {
+                     return `\`${f.column.replace(/`/g, '``')}\` IS NOT NULL`;
                   } else {
                      values.push(f.value);
                      return `\`${f.column.replace(/`/g, '``')}\` = ?`;
@@ -208,7 +261,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             throw new Error("Invalid action");
          }
 
-         const [rows, fieldsRaw] = await conn.execute(qs, values);
+         executedQuery = qs;
+         const [rows, fieldsRaw] = await conn.query(qs, values);
+         duration = Math.round(performance.now() - startTime);
          
          if (Array.isArray(rows)) {
            resultRows = rows as any[];
@@ -221,14 +276,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
            fields = fieldsRaw.map((f: any) => ({ name: f.name }));
          }
          await conn.end();
+         
+         return NextResponse.json({
+           action,
+           table,
+           fields,
+           rows: resultRows,
+           rowCount,
+           executedQuery,
+           duration
+         });
+         
        } catch (err: any) {
-         return NextResponse.json({ error: err.message }, { status: 400 });
+         return NextResponse.json({ error: err.message, executedQuery, duration }, { status: 400 });
        }
     } 
     else {
       return NextResponse.json({ error: "Unsupported database type for exploring" }, { status: 400 });
     }
 
+    // Default catch-all (should be unreachable now, but leaving for safety)
     return NextResponse.json({
       action,
       table,

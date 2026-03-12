@@ -327,7 +327,7 @@ export default function DatabaseDetailPage({ params }: { params: Promise<{ id: s
        .select("*")
        .eq("org_id", org?.id)
        .eq("resource", id)
-       .eq("action", "query")
+       .in("action", ["query", "read", "update", "insert", "delete", "explorer"])
        .order("created_at", { ascending: false })
        .limit(20);
        
@@ -514,6 +514,21 @@ export default function DatabaseDetailPage({ params }: { params: Promise<{ id: s
                  connectionId={id} 
                  tableName={activeTabData.tableName!} 
                  columns={schema.find(s => s.name === activeTabData.tableName)?.columns || []} 
+                 onLogActivity={async (action, sql, duration, status) => {
+                   if (org && user) {
+                     await supabase.from("activity_logs").insert({
+                        org_id: org.id,
+                        user_id: user.id,
+                        user_email: user.email,
+                        action: action, // "read", "update", "insert", "delete"
+                        resource: id,
+                        query: sql,
+                        status: status,
+                        duration_ms: duration
+                     });
+                     loadHistory();
+                   }
+                 }}
                />
             </div>
           ) : (

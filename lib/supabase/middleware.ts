@@ -41,6 +41,13 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Redirect authenticated users away from auth pages AND the homepage
+  if (hasSession && (pathname === "/" || pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password")) {
+    const dashUrl = request.nextUrl.clone();
+    dashUrl.pathname = "/dashboard";
+    return NextResponse.redirect(dashUrl);
+  }
+
   // Allow public paths unconditionally
   if (
     PUBLIC_PATHS.some((p) => pathname === p) ||
@@ -55,13 +62,6 @@ export async function updateSession(request: NextRequest) {
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (hasSession && (pathname === "/login" || pathname === "/signup")) {
-    const dashUrl = request.nextUrl.clone();
-    dashUrl.pathname = "/dashboard";
-    return NextResponse.redirect(dashUrl);
   }
 
   return supabaseResponse;

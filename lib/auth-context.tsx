@@ -33,6 +33,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   isAdmin: boolean;   // role === 'admin'
   canEdit: boolean;   // role === 'admin' | 'editor'
+  switchOrg: (orgId: string) => Promise<void>;
   refreshAuth: () => Promise<void>;
   debugError: any;
 }
@@ -49,6 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Persist the Supabase client inside useState so it isn't recreated on every re-render
   const [supabase] = useState(() => createClient());
+
+  async function switchOrg(orgId: string) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("datrix_active_org_id", orgId);
+    }
+    setLoading(true);
+    await refreshAuth();
+  }
 
   async function loadUserData(userId: string, token: string) {
     try {
@@ -78,45 +87,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("[AuthContext] Error loading profile:", await profRes.text());
       }
 
-      // Load org membership via native fetch
-      const memRes = await withTimeout(fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/org_members?user_id=eq.${userId}&select=org_id,role,organizations(id,name,slug)&limit=1`, { headers }), 5000) as Response;
+    // Check for active org preference
+    let activeOrgId = null;
+    if (typeof window !== "undefined") {
+      activeOrgId = localStorage.getItem("datrix_active_org_id");
+    }
+
+    let url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/org_members?user_id=eq.${userId}&select=org_id,role,organizations(id,name,slug)`;
+    
+    // We still want to see if they are a member of the activeOrgId. If not, we just fallback.
+    // So we fetch all their orgs, and pick the active one if valid, otherwise the first one.
+    
+    // Load org membership via native fetch
+    const memRes = await withTimeout(fetch(url, { headers }), 5000) as Response;
+    
+    if (memRes.ok) {
+      const memberDataList = await memRes.json();
+      console.log("TEST========>", memberDataList)
+
+      let memberData = null;
+      if (memberDataList && memberDataList.length > 0) {
+        if (activeOrgId) {
+           memberData = memberDataList.find((m: any) => m.org_id === activeOrgId) || memberDataList[0];
+        } else {
+           memberData = memberDataList[0];
+        }
+      }
       
-      if (memRes.ok) {
-        const memberDataList = await memRes.json();
-        console.log("TEST========>", memberDataList)
+      console.log("[AuthContext] memberData loaded:", memberData);
 
-        const memberData = memberDataList?.[0] || null;
-        console.log("[AuthContext] memberData loaded:", memberData);
+      if (memberData) {
+        console.log("[AuthContext] Setting org role:", memberData.role);
+        setOrgRole(memberData.role as OrgRole);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawOrg = (memberData as any).organizations;
+        const orgInfo = Array.isArray(rawOrg) ? rawOrg[0] : rawOrg;
+        
+        console.log("[AuthContext] Parsed orgInfo:", orgInfo);
 
-        if (memberData) {
-          console.log("[AuthContext] Setting org role:", memberData.role);
-          setOrgRole(memberData.role as OrgRole);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const rawOrg = (memberData as any).organizations;
-          const orgInfo = Array.isArray(rawOrg) ? rawOrg[0] : rawOrg;
+        if (orgInfo) {
+          console.log("[AuthContext] Calling setOrg with:", { id: orgInfo.id, name: orgInfo.name, slug: orgInfo.slug });
+          setOrg({
+            id: orgInfo.id,
+            name: orgInfo.name,
+            slug: orgInfo.slug,
+          });
           
-          console.log("[AuthContext] Parsed orgInfo:", orgInfo);
-
-          if (orgInfo) {
-            console.log("[AuthContext] Calling setOrg with:", { id: orgInfo.id, name: orgInfo.name, slug: orgInfo.slug });
-            setOrg({
-              id: orgInfo.id,
-              name: orgInfo.name,
-              slug: orgInfo.slug,
-            });
-          } else {
-            console.warn("[AuthContext] memberData exists but orgInfo is falsy!");
+          if (typeof window !== "undefined") {
+            localStorage.setItem("datrix_active_org_id", orgInfo.id);
           }
         } else {
-          console.log("[AuthContext] No memberData found. Setting org to null.");
-          setOrg(null);
-          setOrgRole(null);
+          console.warn("[AuthContext] memberData exists but orgInfo is falsy!");
         }
       } else {
-        const errText = await memRes.text();
-        console.error("[AuthContext] Error loading org membership:", errText);
-        setDebugError({ step: 'org_members', err: errText });
+        console.log("[AuthContext] No memberData found. Setting org to null.");
+        setOrg(null);
+        setOrgRole(null);
       }
+    } else {
+      const errText = await memRes.text();
+      console.error("[AuthContext] Error loading org membership:", errText);
+      setDebugError({ step: 'org_members', err: errText });
+    }
     } catch (err) {
       console.error("[AuthContext] Failed to load user data (caught exception):", err);
       setDebugError({ step: 'catch_block', err: String(err) });
@@ -209,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canEdit = orgRole === "admin" || orgRole === "editor";
 
   return (
-    <AuthContext.Provider value={{ user, profile, org, orgRole, loading, signOut, isAdmin, canEdit, refreshAuth, debugError }}>
+    <AuthContext.Provider value={{ user, profile, org, orgRole, loading, signOut, isAdmin, canEdit, switchOrg, refreshAuth, debugError }}>
       {children}
     </AuthContext.Provider>
   );

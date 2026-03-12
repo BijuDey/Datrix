@@ -47,24 +47,8 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. Auto-generate org name from user's name
-    const orgName = form.name.trim()
-      ? `${form.name.trim()}'s Workspace`
-      : form.email.split("@")[0] + "'s Workspace";
+    // Redirect is handled after email confirmation check
 
-    // 3. Create org + membership via server API
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, fullName: form.name, orgName }),
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      setError(errData.error || "Failed to set up your workspace.");
-      setLoading(false);
-      return;
-    }
 
     // Email confirmation enabled — show success state
     if (!authData.session) {

@@ -16,7 +16,15 @@ export async function GET(request: NextRequest) {
     if (!members?.length) return NextResponse.json({ members: [] });
 
     const userIds = members.map((m) => m.user_id);
-    const { data: { users } } = await supabase.auth.admin.listUsers();
+    
+    // We must use the service role key to list users from Auth
+    const { createClient } = await import("@supabase/supabase-js");
+    const adminSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { data: { users } } = await adminSupabase.auth.admin.listUsers();
     const relevant = (users || [])
       .filter((u) => userIds.includes(u.id))
       .map((u) => ({ user_id: u.id, email: u.email }));

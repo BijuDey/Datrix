@@ -65,8 +65,28 @@ export async function POST(request: NextRequest) {
     }
 
     if (type === "s3") {
-      // Basic S3 bucket existence check using fetch (avoids heavy SDK)
-      return NextResponse.json({ success: true, message: "S3 configuration saved (test on first browse)" });
+      try {
+        const { S3Client, HeadBucketCommand } = await import("@aws-sdk/client-s3");
+
+        const clientConfig: any = {
+          region: config.region || "us-east-1",
+          credentials: {
+            accessKeyId: config.accessKeyId,
+            secretAccessKey: config.secretAccessKey,
+          },
+        };
+        if (config.endpoint) {
+          clientConfig.endpoint = config.endpoint;
+          clientConfig.forcePathStyle = true;
+        }
+
+        const s3 = new S3Client(clientConfig);
+        await s3.send(new HeadBucketCommand({ Bucket: config.bucket }));
+        return NextResponse.json({ success: true, message: "S3 connection successful" });
+      } catch (err: any) {
+        const msg = err?.message || "S3 connection failed";
+        return NextResponse.json({ success: false, error: msg });
+      }
     }
 
     return NextResponse.json({ error: "Unknown type" }, { status: 400 });

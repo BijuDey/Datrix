@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   ShieldCheck,
+  Building,
 } from "lucide-react";
 import { config } from "@/config/app";
 import { useAuth } from "@/lib/auth-context";
@@ -23,6 +24,7 @@ const navItems = [
   { label: "Databases", href: "/dashboard/databases", icon: Database },
   { label: "Storage", href: "/dashboard/storage", icon: HardDrive },
   { label: "Teams", href: "/dashboard/teams", icon: Users },
+  { label: "Organizations", href: "/dashboard/organizations", icon: Building },
   { label: "Logs", href: "/dashboard/logs", icon: ScrollText },
 ];
 

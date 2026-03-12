@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { Plus, RefreshCw, Trash2, Edit2, Check, X, Filter, Search, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Edit2, Check, X, Filter, Search, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from "lucide-react";
 
 interface DataExplorerProps {
   connectionId: string;
   tableName: string;
   columns: { name: string; type: string; primary: boolean; nullable?: boolean }[];
+  onLogActivity?: (action: string, sql: string, duration: number, status: "success" | "error", errorMsg?: string) => void;
 }
 
-export function DataExplorer({ connectionId, tableName, columns }: DataExplorerProps) {
+export function DataExplorer({ connectionId, tableName, columns, onLogActivity }: DataExplorerProps) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +28,61 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
   // For Filtering & Sorting
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [filterColumn, setFilterColumn] = useState<string>(columns[0]?.name || "");
-  const [filterValue, setFilterValue] = useState<string>("");
+  const [activeFilters, setActiveFilters] = useState<{column: string, operator: string, value: string}[]>([]);
+
+  // Column Resizing
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const resizingRef = useRef<{ col: string; startX: number; startWidth: number } | null>(null);
 
   const primaryKey = columns.find(c => c.primary)?.name;
+
+  const [openColumnMenu, setOpenColumnMenu] = useState<string | null>(null);
+  
+  const handleResizeStart = (e: React.MouseEvent, colName: string) => {
+    e.stopPropagation();
+    const startX = e.pageX;
+    const th = (e.target as HTMLElement).closest('th');
+    const startWidth = th?.offsetWidth || 150;
+    resizingRef.current = { col: colName, startX, startWidth };
+    
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+  };
+
+  const handleResizeMove = (e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const { col, startX, startWidth } = resizingRef.current;
+    const delta = e.pageX - startX;
+    setColumnWidths(prev => ({
+      ...prev,
+      [col]: Math.max(50, startWidth + delta)
+    }));
+  };
+
+  const handleResizeEnd = () => {
+    resizingRef.current = null;
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'default';
+  };
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, []);
+  
+  const removeFilter = (index: number) => {
+    setActiveFilters(prev => prev.filter((_, i) => i !== index));
+  };
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
+    setOpenColumnMenu(null);
     try {
-      const filters = filterColumn && filterValue ? [{ column: filterColumn, operator: "contains", value: filterValue }] : [];
       const res = await fetch(`/api/connections/${connectionId}/explorer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,21 +92,30 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
             limit: 100,
             sortColumn,
             sortOrder,
-            filters
+            filters: activeFilters
         })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Failed to load data");
       setData(result.rows || []);
+      
+      if (onLogActivity && result.executedQuery) {
+        onLogActivity("read", result.executedQuery, result.duration || 0, "success");
+      }
     } catch (err: any) {
       setError(err.message);
+      if (onLogActivity) {
+        onLogActivity("read", `-- Failed to read from ${tableName}`, 0, "error", err.message);
+      }
     }
     setLoading(false);
   };
 
+  // Re-run loadData when table or sort/filters change
   useEffect(() => {
     loadData();
-  }, [connectionId, tableName, sortColumn, sortOrder]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionId, tableName, sortColumn, sortOrder, activeFilters]);
 
   const handleSaveEdit = async (row: any) => {
     if (!primaryKey) {
@@ -95,10 +150,17 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       
+      if (onLogActivity && result.executedQuery) {
+        onLogActivity("update", result.executedQuery, result.duration || 0, "success");
+      }
+      
       setEditingRowId(null);
       loadData();
     } catch (err: any) {
       setError(err.message);
+      if (onLogActivity) {
+        onLogActivity("update", `-- Failed to update row in ${tableName}`, 0, "error", err.message);
+      }
     }
   };
 
@@ -121,9 +183,17 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
+      
+      if (onLogActivity && result.executedQuery) {
+        onLogActivity("delete", result.executedQuery, result.duration || 0, "success");
+      }
+      
       loadData();
     } catch (err: any) {
       setError(err.message);
+      if (onLogActivity) {
+        onLogActivity("delete", `-- Failed to delete row from ${tableName}`, 0, "error", err.message);
+      }
     }
   };
 
@@ -141,16 +211,36 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       
+      if (onLogActivity && result.executedQuery) {
+        onLogActivity("insert", result.executedQuery, result.duration || 0, "success");
+      }
+      
       setIsAdding(false);
       setAddState({});
       loadData();
     } catch (err: any) {
       setError(err.message);
+      if (onLogActivity) {
+        onLogActivity("insert", `-- Failed to insert row into ${tableName}`, 0, "error", err.message);
+      }
     }
   };
 
   const getRowId = (row: any, index: number) => {
     return primaryKey ? row[primaryKey] : `row-${index}`;
+  };
+
+  const getOperatorLabel = (op: string) => {
+    switch (op) {
+      case 'eq': return '=';
+      case 'neq': return '!=';
+      case 'gt': return '>';
+      case 'lt': return '<';
+      case 'contains': return 'LIKE';
+      case 'isnull': return 'IS NULL';
+      case 'notnull': return 'IS NOT NULL';
+      default: return op;
+    }
   };
 
   return (
@@ -162,38 +252,23 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
           <span className="text-[#666] text-xs">({data.length} records)</span>
         </div>
         
-        {/* Actions & Filters */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-[#141414] p-1 rounded border border-[#2a2a2a]">
-            <Filter size={10} className="text-[#666] ml-1" />
-            <select 
-              className="bg-transparent text-xs text-[#8a8a8a] outline-none hover:text-white"
-              value={filterColumn}
-              onChange={(e) => setFilterColumn(e.target.value)}
-            >
-              {columns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-            </select>
-            <div className="w-px h-3 bg-[#333] mx-1"></div>
-            <div className="relative flex items-center">
-              <input 
-                type="text" 
-                placeholder="Search..."
-                className="bg-transparent text-xs text-white outline-none w-32 placeholder:text-[#555]"
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && loadData()}
-              />
-            </div>
-            <Button variant="primary" size="sm" className="h-6 px-2 text-[10px]" onClick={loadData}>Search</Button>
-            {filterValue && (
-                <button onClick={() => { setFilterValue(""); setTimeout(loadData, 0)}} className="text-[#666] hover:text-red-400 p-1">
-                    <X size={10} />
-                </button>
-            )}
-          </div>
-          
-          <div className="w-px h-4 bg-[#333]"></div>
+        {/* Render Active Filters */}
+        <div className="flex-1 flex items-center gap-2 px-4 overflow-x-auto">
+          {activeFilters.map((f, i) => (
+             <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-md text-[11px] whitespace-nowrap font-mono">
+               <Filter size={10} />
+               <span>{f.column} {getOperatorLabel(f.operator)} {f.operator !== 'isnull' && f.operator !== 'notnull' ? `'${f.value}'` : ''}</span>
+               <button onClick={() => removeFilter(i)} className="hover:text-amber-200 ml-1"><X size={10}/></button>
+             </div>
+          ))}
+          {activeFilters.length > 0 && (
+             <button onClick={() => setActiveFilters([])} className="text-[#666] hover:text-red-400 text-[10px] ml-1 transition-colors">
+               Clear All
+             </button>
+          )}
+        </div>
 
+        <div className="flex items-center gap-3 shrink-0">
           <Button variant="ghost" size="sm" icon={<RefreshCw size={12} />} onClick={loadData}>
             Refresh
           </Button>
@@ -210,38 +285,126 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
       )}
 
       {/* Data Grid */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative">
         {loading ? (
           <div className="flex items-center justify-center p-8">
             <Spinner size={24} />
           </div>
         ) : (
-          <table className="w-full text-[12px] border-collapse">
-            <thead className="sticky top-0 z-10 bg-[#0f0f0f]">
+          <table className="w-full text-[12px] border-collapse relative">
+            <thead className="sticky top-0 z-20 bg-[#0f0f0f]">
               <tr className="border-b border-[#1a1a1a]">
-                <th className="px-3 py-2 w-20 text-center border-r border-[#141414]">Actions</th>
+                <th className="px-3 py-2 w-20 text-center border-r border-[#141414] bg-[#0f0f0f]">Actions</th>
                 {columns.map(col => (
                   <th 
                     key={col.name} 
-                    className="px-4 py-2 text-left text-[#8a8a8a] border-r border-[#141414] font-medium whitespace-nowrap cursor-pointer hover:bg-[#1a1a1a] transition-colors select-none"
-                    onClick={() => {
-                        if (sortColumn === col.name) {
-                            if (sortOrder === 'asc') setSortOrder('desc');
-                            else { setSortColumn(null); setSortOrder('asc'); }
-                        } else {
-                            setSortColumn(col.name);
-                            setSortOrder('asc');
-                        }
-                    }}
+                    className="px-4 py-2 text-left text-[#8a8a8a] border-r border-[#141414] font-medium whitespace-nowrap bg-[#0f0f0f] relative group select-none"
+                    style={{ width: columnWidths[col.name] || 'auto', minWidth: columnWidths[col.name] || '120px' }}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div 
+                      className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors"
+                      onClick={() => setOpenColumnMenu(openColumnMenu === col.name ? null : col.name)}
+                    >
                       {col.primary && <span className="text-[9px] text-amber-500 bg-amber-500/10 px-1 rounded">PK</span>}
-                      <span className={sortColumn === col.name ? "text-amber-400" : ""}>{col.name}</span>
+                      <span className={sortColumn === col.name ? "text-amber-400" : "truncate"}>{col.name}</span>
                       {sortColumn === col.name && (
-                        sortOrder === 'asc' ? <ArrowUp size={10} className="text-amber-500" /> : <ArrowDown size={10} className="text-amber-500" />
+                        sortOrder === 'asc' ? <ArrowUp size={10} className="text-amber-500 ml-auto" /> : <ArrowDown size={10} className="text-amber-500 ml-auto" />
                       )}
-                      <span className="text-[#444] font-mono text-[9px] ml-1">{col.type}</span>
+                      {openColumnMenu === col.name ? <ChevronDown size={10} className="text-[#888] ml-auto" /> : <ChevronRight size={10} className="text-[#444] opacity-0 group-hover:opacity-100 ml-auto transition-opacity" />}
                     </div>
+
+                    {/* Resize Handle */}
+                    <div 
+                      onMouseDown={(e) => handleResizeStart(e, col.name)}
+                      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize group-hover:bg-white/5 active:bg-amber-500/50 transition-colors z-10"
+                    />
+                    
+                    {/* Column Dropdown Menu */}
+                    {openColumnMenu === col.name && (
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-2xl z-50 overflow-hidden font-sans">
+                        <div className="absolute top-1.5 right-1.5 z-10">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setOpenColumnMenu(null); }} 
+                            className="p-1 text-[#888] hover:text-white rounded-full hover:bg-[#333] transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        
+                        {/* Sorting */}
+                        <div className="p-1 border-b border-[#2a2a2a] pt-2">
+                          <button 
+                            className="w-full text-left px-3 py-1.5 text-xs text-[#cbcbcb] hover:bg-[#222] hover:text-white rounded flex items-center gap-2 transition-colors pr-8"
+                            onClick={() => { setSortColumn(col.name); setSortOrder('asc'); setOpenColumnMenu(null); }}
+                          >
+                            <ArrowUp size={12} className="text-amber-500" /> Sort Ascending
+                          </button>
+                          <button 
+                            className="w-full text-left px-3 py-1.5 text-xs text-[#cbcbcb] hover:bg-[#222] hover:text-white rounded flex items-center gap-2 transition-colors pr-8"
+                            onClick={() => { setSortColumn(col.name); setSortOrder('desc'); setOpenColumnMenu(null); }}
+                          >
+                            <ArrowDown size={12} className="text-amber-500" /> Sort Descending
+                          </button>
+                        </div>
+                        
+                        {/* Filtering */}
+                        <div className="p-4 bg-[#161616]">
+                          <div className="text-[11px] font-medium text-[#888] mb-3 flex items-center gap-1">
+                            <Filter size={10} /> Filter by value
+                          </div>
+                          
+                          <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const op = formData.get("operator") as string;
+                            const val = formData.get("value") as string;
+                            if (!op || (!val && op !== 'isnull' && op !== 'notnull')) return;
+                            
+                            setActiveFilters(prev => [...prev, { column: col.name, operator: op, value: val }]);
+                            setOpenColumnMenu(null);
+                          }}>
+                            
+                            <div className="space-y-2 mb-4">
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] text-[#666] font-medium uppercase ml-0.5">Operator</span>
+                                <select 
+                                  name="operator" 
+                                  className="w-full bg-[#0d0d0d] border border-[#333] rounded-md px-3 py-2 text-xs text-[#cbcbcb] outline-none focus:border-amber-500/50 transition-all cursor-pointer hover:text-white"
+                                >
+                                  <option value="eq">Equals</option>
+                                  <option value="neq">Not Equals</option>
+                                  <option value="gt">Greater Than</option>
+                                  <option value="lt">Less Than</option>
+                                  <option value="contains">Contains (LIKE)</option>
+                                  <option value="isnull">Is null</option>
+                                  <option value="notnull">Is not null</option>
+                                </select>
+                              </div>
+                              
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] text-[#666] font-medium uppercase ml-0.5">Value</span>
+                                <input 
+                                  type="text" 
+                                  name="value"
+                                  placeholder="Value..."
+                                  className="w-full bg-[#0d0d0d] border border-[#333] rounded-md px-3 py-2 text-xs text-[#fff] placeholder:text-[#444] outline-none focus:border-amber-500/50 transition-all"
+                                  autoFocus
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-end gap-2 border-t border-[#2a2a2a] pt-3">
+                              <Button type="button" variant="ghost" size="sm" onClick={() => setOpenColumnMenu(null)} className="h-8 text-[11px] px-3">
+                                Cancel
+                              </Button>
+                              <Button type="submit" variant="primary" size="sm" className="h-8 text-[11px] px-4 font-medium">
+                                Apply
+                              </Button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -261,7 +424,11 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
                     </div>
                   </td>
                   {columns.map(col => (
-                    <td key={`add-${col.name}`} className="px-2 py-1 border-r border-[#1a1a1a]">
+                    <td 
+                      key={`add-${col.name}`} 
+                      className="px-2 py-1 border-r border-[#1a1a1a]"
+                      style={{ width: columnWidths[col.name] || 'auto', minWidth: columnWidths[col.name] || '120px' }}
+                    >
                       {col.primary && col.type.includes('increment') ? (
                         <span className="text-[#555] text-[10px] italic px-2">Auto</span>
                       ) : (
@@ -299,12 +466,18 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
                         <div className="flex items-center justify-center gap-1 opacity-50 hover:opacity-100 transition-opacity">
                           {primaryKey && (
                             <>
-                              <button onClick={() => {
-                                setEditState({...row});
-                                setEditingRowId(String(rowId));
-                              }} className="p-1 text-[#8a8a8a] bg-[#1a1a1a] hover:bg-[#222] hover:text-white rounded border border-[#2a2a2a]" title="Edit">
-                                <Edit2 size={12} />
-                              </button>
+                                <button onClick={() => {
+                                  const safeRow = { ...row };
+                                  for (const key in safeRow) {
+                                    if (typeof safeRow[key] === 'object' && safeRow[key] !== null) {
+                                      safeRow[key] = JSON.stringify(safeRow[key]);
+                                    }
+                                  }
+                                  setEditState(safeRow);
+                                  setEditingRowId(String(rowId));
+                                }} className="p-1 text-[#8a8a8a] bg-[#1a1a1a] hover:bg-[#222] hover:text-white rounded border border-[#2a2a2a]" title="Edit">
+                                  <Edit2 size={12} />
+                                </button>
                               <button onClick={() => handleDelete(row)} className="p-1 text-[#8a8a8a] bg-[#1a1a1a] hover:bg-red-950/30 hover:text-red-400 rounded border border-[#2a2a2a]" title="Delete">
                                 <Trash2 size={12} />
                               </button>
@@ -317,7 +490,11 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
                     {columns.map(col => {
                       const val = row[col.name];
                       return (
-                        <td key={col.name} className="px-4 py-2 font-mono text-[#f0f0f0] border-r border-[#141414] max-w-[250px] truncate">
+                        <td 
+                          key={col.name} 
+                          className="px-4 py-2 font-mono text-[#f0f0f0] border-r border-[#141414] truncate"
+                          style={{ width: columnWidths[col.name] || 'auto', minWidth: columnWidths[col.name] || '120px', maxWidth: columnWidths[col.name] || '250px' }}
+                        >
                           {isEditing && col.name !== primaryKey ? (
                             <input 
                               type="text" 
@@ -326,7 +503,8 @@ export function DataExplorer({ connectionId, tableName, columns }: DataExplorerP
                               onChange={e => setEditState({...editState, [col.name]: e.target.value})}
                             />
                           ) : (
-                            val === null ? <span className="text-[#555] italic">null</span> : String(val)
+                            val === null ? <span className="text-[#555] italic">null</span> : 
+                            (typeof val === 'object' ? JSON.stringify(val) : String(val))
                           )}
                         </td>
                       );
