@@ -48,7 +48,7 @@ export function Modal({ open, onClose, title, description, children, className, 
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/45 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -56,29 +56,30 @@ export function Modal({ open, onClose, title, description, children, className, 
       <div
         ref={dialogRef}
         className={cn(
-          "relative w-full animate-fade-in",
-          "bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-2xl",
+          "relative w-full animate-fade-in rounded-xl shadow-xl",
           "flex flex-col max-h-[90vh]",
           sizes[size],
           className
         )}
+        style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="flex items-start justify-between p-5 border-b border-[#1f1f1f]">
+          <div className="flex items-start justify-between p-5" style={{ borderBottom: "1px solid var(--border)" }}>
             <div>
               {title && (
-                <h2 className="text-base font-semibold text-[#f0f0f0]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)", fontFamily: "'Space Grotesk', sans-serif" }}>
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="mt-0.5 text-xs text-[#8a8a8a]">{description}</p>
+                <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>{description}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="ml-4 flex items-center justify-center w-7 h-7 rounded-md text-[#8a8a8a] hover:text-[#f0f0f0] hover:bg-[#1e1e1e] transition-colors"
+              className="ml-4 flex items-center justify-center w-7 h-7 rounded-md transition-colors"
+              style={{ color: "var(--text-muted)" }}
             >
               <X size={15} />
             </button>
@@ -94,7 +95,10 @@ export function Modal({ open, onClose, title, description, children, className, 
 
 export function ModalFooter({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex items-center justify-end gap-2 p-4 border-t border-[#1f1f1f]", className)}>
+    <div
+      className={cn("flex items-center justify-end gap-2 p-4", className)}
+      style={{ borderTop: "1px solid var(--border)" }}
+    >
       {children}
     </div>
   );

@@ -116,7 +116,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="p-4 rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] animate-pulse h-24" />
+              <div key={i} className="p-4 rounded-xl skeleton h-24" />
             ))}
           </div>
         ) : (
@@ -124,21 +124,21 @@ export default function DashboardPage() {
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="p-4 rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] hover:border-[#252525] transition-all group"
+                className="p-4 rounded-xl bg-surface shadow-sm hover:shadow-md transition-all group"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <p className="text-[11px] font-medium text-[#8a8a8a] uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-[11px] font-medium text-secondary uppercase tracking-wider">{stat.label}</p>
                   <stat.icon size={14} className={`${stat.color} opacity-60`} />
                 </div>
                 <p
-                  className="text-[28px] font-bold text-[#f0f0f0] tracking-[-0.03em] mb-1"
+                  className="text-[28px] font-bold text-primary tracking-[-0.03em] mb-1"
                   style={{ fontFamily: "'Space Grotesk', sans-serif" }}
                 >
                   {stat.value}
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <TrendingUp size={11} className="text-[#444]" />
-                  <span className="text-[11px] text-[#8a8a8a]">{stat.trend}</span>
+                  <TrendingUp size={11} className="text-muted" />
+                  <span className="text-[11px] text-secondary">{stat.trend}</span>
                 </div>
               </div>
             ))}
@@ -147,11 +147,11 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Recent Activity */}
-          <div className="lg:col-span-2 rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#141414]">
+          <div className="lg:col-span-2 rounded-xl bg-surface shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
               <div className="flex items-center gap-2">
                 <Activity size={14} className="text-amber-400" />
-                <h2 className="text-[13px] font-semibold text-[#f0f0f0]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h2 className="text-[13px] font-semibold text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   Recent Activity
                 </h2>
               </div>
@@ -162,23 +162,23 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="divide-y divide-[#141414]">
+            <div className="divide-y divide-subtle">
               {loading ? (
                 [...Array(4)].map((_, i) => (
-                  <div key={i} className="px-5 py-3.5 animate-pulse">
-                    <div className="h-3 bg-[#1a1a1a] rounded w-3/4 mb-2" />
-                    <div className="h-2 bg-[#151515] rounded w-1/2" />
+                  <div key={i} className="px-5 py-3.5 space-y-2">
+                    <div className="skeleton h-3 w-3/4" />
+                    <div className="skeleton h-2 w-1/2" />
                   </div>
                 ))
               ) : recentActivity.length === 0 ? (
                 <div className="px-5 py-10 text-center">
-                  <Activity size={24} className="text-[#333] mx-auto mb-3" />
-                  <p className="text-[13px] text-[#555]">No activity yet</p>
-                  <p className="text-[11px] text-[#444] mt-1">Connect a database and run your first query</p>
+                  <Activity size={24} className="text-faint mx-auto mb-3" />
+                  <p className="text-[13px] text-muted">No activity yet</p>
+                  <p className="text-[11px] text-muted mt-1">Connect a database and run your first query</p>
                 </div>
               ) : (
                 recentActivity.map((item) => (
-                  <div key={item.id} className="px-5 py-3.5 hover:bg-[#111] transition-colors">
+                  <div key={item.id} className="px-5 py-3.5 hover:bg-surface-2 transition-colors">
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 shrink-0">
                         {item.status === "success" ? (
@@ -193,19 +193,19 @@ export default function DashboardPage() {
                             {item.action}
                           </Badge>
                           {item.resource && (
-                            <span className="text-[11px] text-[#444] font-mono">{item.resource}</span>
+                            <span className="text-[11px] text-muted font-mono">{item.resource}</span>
                           )}
                           {item.duration_ms != null && (
-                            <span className="ml-auto text-[11px] text-[#444] flex items-center gap-1">
+                            <span className="ml-auto text-[11px] text-muted flex items-center gap-1">
                               <Clock size={10} />
                               {item.duration_ms}ms
                             </span>
                           )}
                         </div>
                         {item.query && (
-                          <p className="text-[12px] text-[#8a8a8a] font-mono truncate">{item.query}</p>
+                          <p className="text-[12px] text-secondary font-mono truncate">{item.query}</p>
                         )}
-                        <p className="text-[11px] text-[#444] mt-1">{formatRelativeTime(item.created_at)}</p>
+                        <p className="text-[11px] text-muted mt-1">{formatRelativeTime(item.created_at)}</p>
                       </div>
                     </div>
                   </div>
@@ -215,11 +215,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Connections sidebar */}
-          <div className="rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#141414]">
+          <div className="rounded-xl bg-surface shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
               <div className="flex items-center gap-2">
                 <Database size={14} className="text-amber-400" />
-                <h2 className="text-[13px] font-semibold text-[#f0f0f0]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h2 className="text-[13px] font-semibold text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   Connections
                 </h2>
               </div>
@@ -233,23 +233,23 @@ export default function DashboardPage() {
             <div className="p-3 space-y-2">
               {loading ? (
                 [...Array(2)].map((_, i) => (
-                  <div key={i} className="h-14 rounded-lg bg-[#111] border border-[#1a1a1a] animate-pulse" />
+                  <div key={i} className="h-14 rounded-lg skeleton" />
                 ))
               ) : connections.length === 0 ? (
                 <div className="py-6 text-center">
-                  <p className="text-[12px] text-[#555]">No connections yet</p>
+                  <p className="text-[12px] text-muted">No connections yet</p>
                 </div>
               ) : (
                 connections.slice(0, 5).map((conn) => (
                   <Link
                     key={conn.id}
                     href={`/dashboard/databases/${conn.id}`}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-[#111] border border-[#1a1a1a] hover:border-amber-500/25 hover:bg-amber-500/5 transition-all group"
+                    className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 hover:bg-amber-500/5 transition-all group"
                   >
                     <div className="w-2 h-2 rounded-full shrink-0 bg-green-400" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-medium text-[#f0f0f0] truncate">{conn.name}</p>
-                      <p className="text-[11px] text-[#444] truncate font-mono">{conn.type}</p>
+                      <p className="text-[12px] font-medium text-primary truncate">{conn.name}</p>
+                      <p className="text-[11px] text-muted truncate font-mono">{conn.type}</p>
                     </div>
                     <Badge variant={conn.type === "postgres" ? "info" : conn.type === "mysql" ? "warning" : "default"}>
                       {conn.type === "postgres" ? "PG" : conn.type === "mysql" ? "MY" : "S3"}
@@ -259,7 +259,7 @@ export default function DashboardPage() {
               )}
 
               <Link href="/dashboard/databases?new=1">
-                <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-[#252525] text-[12px] text-[#444] hover:text-amber-400 hover:border-amber-500/30 transition-all">
+                <button className="w-full flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-border text-[12px] text-muted hover:text-amber-400 hover:border-amber-500/30 transition-all">
                   <Plus size={12} />
                   Add connection
                 </button>

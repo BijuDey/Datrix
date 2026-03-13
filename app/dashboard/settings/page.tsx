@@ -79,7 +79,7 @@ export default function SettingsPage() {
         <PageHeader title="Settings" description="Configure your account and workspace" />
 
         {/* Tab nav */}
-        <div className="flex gap-1 p-1 bg-[#111] border border-[#1f1f1f] rounded-xl mb-6">
+        <div className="flex gap-1 p-1 bg-surface-2 border border-default rounded-xl mb-6">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -87,8 +87,8 @@ export default function SettingsPage() {
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-[13px] font-medium transition-all",
                 tab === t.id
-                  ? "bg-[#0f0f0f] text-[#f0f0f0] border border-[#222] shadow-sm"
-                  : "text-[#666] hover:text-[#f0f0f0]"
+                  ? "bg-surface text-primary border border-default shadow-sm"
+                  : "text-secondary hover:text-primary"
               )}
             >
               <t.icon size={13} />
@@ -105,20 +105,20 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] p-6">
+        <div className="rounded-xl bg-surface border border-subtle p-6">
           {tab === "profile" && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-[14px] font-semibold text-[#f0f0f0] mb-1">Profile</h2>
-                <p className="text-[12px] text-[#555]">Update your personal information</p>
+                <h2 className="text-[14px] font-semibold text-primary mb-1">Profile</h2>
+                <p className="text-[12px] text-muted">Update your personal information</p>
               </div>
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-[#111] border border-[#1f1f1f]">
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-surface-2 border border-default">
                 <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[16px] font-bold text-amber-400">
                   {fullName ? fullName.charAt(0).toUpperCase() : "U"}
                 </div>
                 <div>
-                  <p className="text-[13px] font-medium text-[#f0f0f0]">{profile?.full_name || "—"}</p>
-                  <p className="text-[12px] text-[#555]">{user?.email}</p>
+                  <p className="text-[13px] font-medium text-primary">{profile?.full_name || "—"}</p>
+                  <p className="text-[12px] text-muted">{user?.email}</p>
                 </div>
               </div>
               <Input
@@ -129,10 +129,10 @@ export default function SettingsPage() {
                 placeholder="Your full name"
               />
               <div>
-                <label className="text-[12px] font-medium text-[#8a8a8a] mb-1.5 block">Email address</label>
-                <div className="flex items-center gap-2.5 h-10 px-3 rounded-lg bg-[#141414] border border-[#1f1f1f] text-[13px] text-[#555]">
+                <label className="text-[12px] font-medium text-secondary mb-1.5 block">Email address</label>
+                <div className="flex items-center gap-2.5 h-10 px-3 rounded-lg bg-surface-2 border border-default text-[13px] text-muted">
                   {user?.email}
-                  <span className="ml-auto text-[10px] text-[#444] bg-[#1e1e1e] border border-[#2a2a2a] px-1.5 py-0.5 rounded">read-only</span>
+                  <span className="ml-auto text-[10px] text-muted bg-surface-3 border border-strong px-1.5 py-0.5 rounded">read-only</span>
                 </div>
               </div>
               <Button variant="primary" size="sm" loading={saving} onClick={saveProfile} icon={saving ? <RefreshCw size={12} className="animate-spin" /> : undefined}>
@@ -144,8 +144,8 @@ export default function SettingsPage() {
           {tab === "organization" && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-[14px] font-semibold text-[#f0f0f0] mb-1">Organization</h2>
-                <p className="text-[12px] text-[#555]">
+                <h2 className="text-[14px] font-semibold text-primary mb-1">Organization</h2>
+                <p className="text-[12px] text-muted">
                   {isAdmin ? "Update your organization settings" : "You need admin access to change these settings"}
                 </p>
               </div>
@@ -154,8 +154,8 @@ export default function SettingsPage() {
                   {orgName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-[13px] font-medium text-[#f0f0f0]">{org?.name}</p>
-                  <p className="text-[11px] text-[#555] font-mono">{org?.slug}</p>
+                  <p className="text-[13px] font-medium text-primary">{org?.name}</p>
+                  <p className="text-[11px] text-muted font-mono">{org?.slug}</p>
                 </div>
               </div>
               <Input
@@ -176,8 +176,8 @@ export default function SettingsPage() {
           {tab === "password" && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-[14px] font-semibold text-[#f0f0f0] mb-1">Security</h2>
-                <p className="text-[12px] text-[#555]">Update your password</p>
+                <h2 className="text-[14px] font-semibold text-primary mb-1">Security</h2>
+                <p className="text-[12px] text-muted">Update your password</p>
               </div>
               <Input
                 label="New password"

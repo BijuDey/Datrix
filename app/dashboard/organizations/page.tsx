@@ -100,32 +100,35 @@ export default function OrganizationsPage() {
             </Button>
           </PageHeader>
           
-          <div className="rounded-2xl border border-[#1a1a1a] bg-[#0f0f0f] overflow-hidden">
+          <div className="rounded-2xl border border-subtle bg-surface overflow-hidden">
             {loadingOrgs ? (
-              <div className="p-5 text-center text-[#8a8a8a] text-[13px] animate-pulse">Loading workspaces...</div>
+              <div className="p-5 space-y-3">
+                <div className="skeleton h-3 w-40 mx-auto" />
+                <div className="skeleton h-10 rounded-xl" />
+              </div>
             ) : organizations.length === 0 ? (
               <div className="p-10 text-center">
-                <Building size={24} className="text-[#333] mx-auto mb-3" />
-                <p className="text-[13px] text-[#888]">No organizations found</p>
+                <Building size={24} className="text-faint mx-auto mb-3" />
+                <p className="text-[13px] text-muted">No organizations found</p>
               </div>
             ) : (
-              <div className="divide-y divide-[#141414]">
+              <div className="divide-y divide-border">
                 {organizations.map(o => {
                    const isActive = currentOrg?.id === o.id;
                    return (
-                     <div key={o.id} className="p-5 flex items-center justify-between hover:bg-[#111] transition-colors">
+                     <div key={o.id} className="p-5 flex items-center justify-between hover:bg-surface-2 transition-colors">
                        <div className="flex items-center gap-4">
                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
                            <Building size={18} />
                          </div>
                          <div>
-                           <h3 className="text-[14px] font-semibold text-[#f0f0f0] flex items-center gap-2">
+                           <h3 className="text-[14px] font-semibold text-primary flex items-center gap-2">
                              {o.name}
                              {isActive && (
                                <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/30 uppercase tracking-wide">Active</span>
                              )}
                            </h3>
-                           <p className="text-[12px] text-[#888] mt-0.5">Role: {o.role}</p>
+                           <p className="text-[12px] text-muted mt-0.5">Role: {o.role}</p>
                          </div>
                        </div>
                        <div className="flex items-center gap-2">
@@ -161,20 +164,20 @@ export default function OrganizationsPage() {
                description="Workspaces you've been invited to join"
              />
              
-             <div className="rounded-2xl border border-[#1a1a1a] bg-[#0f0f0f] overflow-hidden">
-               <div className="divide-y divide-[#141414]">
+             <div className="rounded-2xl border border-subtle bg-surface overflow-hidden">
+               <div className="divide-y divide-border">
                   {invitations.map(invite => (
-                    <div key={invite.id} className="p-5 flex items-center justify-between hover:bg-[#111] transition-colors">
+                    <div key={invite.id} className="p-5 flex items-center justify-between hover:bg-surface-2 transition-colors">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[#8a8a8a]">
+                        <div className="w-10 h-10 rounded-xl bg-surface-3 border border-strong flex items-center justify-center text-secondary">
                           <Mail size={18} />
                         </div>
                         <div>
-                          <h3 className="text-[14px] font-semibold text-[#f0f0f0]">
+                          <h3 className="text-[14px] font-semibold text-primary">
                             {invite.organizations?.name || "Unknown Workspace"}
                           </h3>
-                          <p className="text-[12px] text-[#888] mt-0.5">
-                            Invited by {invite.profiles?.full_name || "someone"} as <span className="text-[#ccc] capitalize">{invite.role}</span>
+                           <p className="text-[12px] text-muted mt-0.5">
+                             Invited by {invite.profiles?.full_name || "someone"} as <span className="text-secondary capitalize">{invite.role}</span>
                             {" · "}{formatRelativeTime(invite.created_at)}
                           </p>
                         </div>

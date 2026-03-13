@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Zap, Mail, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
@@ -35,16 +36,16 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--bg-base)" }}>
         <div className="w-full max-w-sm text-center">
           <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 size={26} className="text-amber-400" />
           </div>
-          <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#f0f0f0] mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-[22px] font-bold tracking-[-0.03em] mb-2" style={{ color: "var(--text-primary)", fontFamily: "'Space Grotesk', sans-serif" }}>
             Check your inbox
           </h1>
-          <p className="text-[13px] text-[#8a8a8a] leading-relaxed mb-6">
-            We sent a password reset link to <span className="text-[#f0f0f0]">{email}</span>.
+          <p className="text-[13px] leading-relaxed mb-6" style={{ color: "var(--text-muted)" }}>
+            We sent a password reset link to <span style={{ color: "var(--text-primary)" }}>{email}</span>.
           </p>
           <Link href="/login" className="text-[13px] text-amber-400 hover:text-amber-300 transition-colors font-medium">
             Back to sign in
@@ -55,21 +56,16 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080808] flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--bg-base)" }}>
       <div className="w-full max-w-sm">
-        <Link href="/" className="flex items-center gap-2.5 mb-10">
-          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/15 border border-amber-500/25">
-            <Zap size={13} className="text-amber-400" />
-          </div>
-          <span className="text-[15px] font-bold tracking-[-0.03em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Datrix
-          </span>
+        <Link href="/" className="flex mb-10">
+          <BrandLogo iconSize={28} showText textClassName="text-[15px] font-bold tracking-[-0.03em]" />
         </Link>
 
-        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#f0f0f0] mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <h1 className="text-[24px] font-bold tracking-[-0.03em] mb-1" style={{ color: "var(--text-primary)", fontFamily: "'Space Grotesk', sans-serif" }}>
           Reset password
         </h1>
-        <p className="text-[13px] text-[#8a8a8a] mb-8">
+        <p className="text-[13px] mb-8" style={{ color: "var(--text-muted)" }}>
           Remember it?{" "}
           <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
             Sign in
@@ -77,7 +73,7 @@ export default function ForgotPasswordPage() {
         </p>
 
         {error && (
-          <div className="flex items-center gap-2.5 p-3 mb-4 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400 text-[12px]">
+          <div className="flex items-center gap-2.5 p-3 mb-4 rounded-lg text-[12px]" style={{ background: "var(--error-dim)", border: "1px solid rgba(239,68,68,0.2)", color: "var(--error)" }}>
             <AlertCircle size={13} className="shrink-0" />
             {error}
           </div>

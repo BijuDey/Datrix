@@ -83,8 +83,8 @@ export default function LogsPage() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 mb-5">
-          <Filter size={13} className="text-[#555]" />
-          <span className="text-[12px] text-[#555]">Status:</span>
+          <Filter size={13} className="text-muted" />
+          <span className="text-[12px] text-muted">Status:</span>
           {STATUS_OPTIONS.map((s) => (
             <button
               key={s}
@@ -93,7 +93,7 @@ export default function LogsPage() {
                 "px-3 py-1 rounded-md text-[12px] font-medium capitalize transition-all",
                 statusFilter === s
                   ? "bg-amber-500/15 text-amber-400 border border-amber-500/25"
-                  : "text-[#666] hover:text-[#f0f0f0] border border-transparent hover:border-[#252525]"
+                  : "text-secondary hover:text-primary border border-transparent hover:border-border"
               )}
             >
               {s}
@@ -102,31 +102,31 @@ export default function LogsPage() {
         </div>
 
         {/* Logs table */}
-        <div className="rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] overflow-hidden">
-          <div className="px-5 py-3 border-b border-[#141414] flex items-center gap-2">
+        <div className="rounded-xl bg-surface border border-subtle overflow-hidden">
+          <div className="px-5 py-3 border-b border-subtle flex items-center gap-2">
             <ScrollText size={14} className="text-amber-400" />
-            <h2 className="text-[13px] font-semibold text-[#f0f0f0]">Events</h2>
+            <h2 className="text-[13px] font-semibold text-primary">Events</h2>
           </div>
 
           {loading ? (
-            <div className="divide-y divide-[#141414]">
+            <div className="divide-y divide-border">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="px-5 py-3.5 animate-pulse">
-                  <div className="h-3 bg-[#1a1a1a] rounded w-3/4 mb-2" />
-                  <div className="h-2 bg-[#151515] rounded w-1/2" />
+                <div key={i} className="px-5 py-3.5 space-y-2">
+                  <div className="skeleton h-3 w-3/4" />
+                  <div className="skeleton h-2 w-1/2" />
                 </div>
               ))}
             </div>
           ) : logs.length === 0 ? (
             <div className="py-16 text-center">
-              <ScrollText size={28} className="text-[#333] mx-auto mb-3" />
-              <p className="text-[13px] text-[#555]">No logs found</p>
-              <p className="text-[11px] text-[#444] mt-1">Activity will appear here after running queries</p>
+              <ScrollText size={28} className="text-faint mx-auto mb-3" />
+              <p className="text-[13px] text-muted">No logs found</p>
+              <p className="text-[11px] text-muted mt-1">Activity will appear here after running queries</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#141414]">
+            <div className="divide-y divide-border">
               {logs.map((log) => (
-                <div key={log.id} className="px-5 py-3.5 hover:bg-[#111] transition-colors group">
+                <div key={log.id} className="px-5 py-3.5 hover:bg-surface-2 transition-colors group">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 shrink-0">
                       {log.status === "success" ? (
@@ -141,27 +141,27 @@ export default function LogsPage() {
                           {log.action}
                         </Badge>
                         {log.resource && (
-                          <span className="text-[11px] text-[#555] font-mono bg-[#161616] px-2 py-0.5 rounded">
+                          <span className="text-[11px] text-muted font-mono bg-surface-2 px-2 py-0.5 rounded">
                             {log.resource}
                           </span>
                         )}
                         {log.duration_ms != null && (
-                          <span className="ml-auto text-[11px] text-[#444] flex items-center gap-1">
+                          <span className="ml-auto text-[11px] text-muted flex items-center gap-1">
                             <Clock size={10} />
                             {log.duration_ms}ms
                           </span>
                         )}
                       </div>
                       {log.query && (
-                        <p className="text-[12px] text-[#8a8a8a] font-mono truncate mb-1">{log.query}</p>
+                        <p className="text-[12px] text-secondary font-mono truncate mb-1">{log.query}</p>
                       )}
                       <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-[11px] text-[#444]">{formatRelativeTime(log.created_at)}</span>
+                        <span className="text-[11px] text-muted">{formatRelativeTime(log.created_at)}</span>
                         {log.user_email && (
-                          <span className="text-[11px] text-[#444]">by {log.user_email}</span>
+                          <span className="text-[11px] text-muted">by {log.user_email}</span>
                         )}
                         {log.ip_address && (
-                          <span className="text-[11px] text-[#333] font-mono">{log.ip_address}</span>
+                          <span className="text-[11px] text-faint font-mono">{log.ip_address}</span>
                         )}
                       </div>
                     </div>
@@ -173,8 +173,8 @@ export default function LogsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3.5 border-t border-[#141414]">
-              <span className="text-[12px] text-[#555]">
+            <div className="flex items-center justify-between px-5 py-3.5 border-t border-subtle">
+              <span className="text-[12px] text-muted">
                 Page {page + 1} of {totalPages}
               </span>
               <div className="flex gap-2">

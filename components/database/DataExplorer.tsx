@@ -244,25 +244,25 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] text-sm">
+    <div className="flex flex-col h-full bg-base text-sm">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[#1a1a1a] bg-[#0f0f0f]">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-subtle bg-surface">
         <div className="flex items-center gap-2">
-          <span className="text-[#f0f0f0] font-mono text-xs">{tableName}</span>
-          <span className="text-[#666] text-xs">({data.length} records)</span>
+          <span className="text-primary font-mono text-xs">{tableName}</span>
+          <span className="text-faint text-xs">({data.length} records)</span>
         </div>
         
         {/* Render Active Filters */}
         <div className="flex-1 flex items-center gap-2 px-4 overflow-x-auto">
           {activeFilters.map((f, i) => (
-             <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-md text-[11px] whitespace-nowrap font-mono">
+             <div key={i} className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded-md text-[11px] whitespace-nowrap font-mono">
                <Filter size={10} />
                <span>{f.column} {getOperatorLabel(f.operator)} {f.operator !== 'isnull' && f.operator !== 'notnull' ? `'${f.value}'` : ''}</span>
                <button onClick={() => removeFilter(i)} className="hover:text-amber-200 ml-1"><X size={10}/></button>
              </div>
           ))}
           {activeFilters.length > 0 && (
-             <button onClick={() => setActiveFilters([])} className="text-[#666] hover:text-red-400 text-[10px] ml-1 transition-colors">
+             <button onClick={() => setActiveFilters([])} className="text-faint hover:text-red-400 text-[10px] ml-1 transition-colors">
                Clear All
              </button>
           )}
@@ -292,17 +292,17 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
           </div>
         ) : (
           <table className="w-full text-[12px] border-collapse relative">
-            <thead className="sticky top-0 z-20 bg-[#0f0f0f]">
-              <tr className="border-b border-[#1a1a1a]">
-                <th className="px-3 py-2 w-20 text-center border-r border-[#141414] bg-[#0f0f0f]">Actions</th>
+            <thead className="sticky top-0 z-20 bg-surface">
+              <tr className="border-b border-subtle">
+                <th className="px-3 py-2 w-20 text-center border-r border-subtle bg-surface">Actions</th>
                 {columns.map(col => (
                   <th 
                     key={col.name} 
-                    className="px-4 py-2 text-left text-[#8a8a8a] border-r border-[#141414] font-medium whitespace-nowrap bg-[#0f0f0f] relative group select-none"
+                    className="px-4 py-2 text-left text-muted border-r border-subtle font-medium whitespace-nowrap bg-surface relative group select-none"
                     style={{ width: columnWidths[col.name] || 'auto', minWidth: columnWidths[col.name] || '120px' }}
                   >
                     <div 
-                      className="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors"
+                      className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
                       onClick={() => setOpenColumnMenu(openColumnMenu === col.name ? null : col.name)}
                     >
                       {col.primary && <span className="text-[9px] text-amber-500 bg-amber-500/10 px-1 rounded">PK</span>}
@@ -310,7 +310,7 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                       {sortColumn === col.name && (
                         sortOrder === 'asc' ? <ArrowUp size={10} className="text-amber-500 ml-auto" /> : <ArrowDown size={10} className="text-amber-500 ml-auto" />
                       )}
-                      {openColumnMenu === col.name ? <ChevronDown size={10} className="text-[#888] ml-auto" /> : <ChevronRight size={10} className="text-[#444] opacity-0 group-hover:opacity-100 ml-auto transition-opacity" />}
+                      {openColumnMenu === col.name ? <ChevronDown size={10} className="text-muted ml-auto" /> : <ChevronRight size={10} className="text-faint opacity-0 group-hover:opacity-100 ml-auto transition-opacity" />}
                     </div>
 
                     {/* Resize Handle */}
@@ -321,26 +321,26 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                     
                     {/* Column Dropdown Menu */}
                     {openColumnMenu === col.name && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-2xl z-50 overflow-hidden font-sans">
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-elevated border border-subtle rounded-lg shadow-2xl z-50 overflow-hidden font-sans">
                         <div className="absolute top-1.5 right-1.5 z-10">
                           <button 
                             onClick={(e) => { e.stopPropagation(); setOpenColumnMenu(null); }} 
-                            className="p-1 text-[#888] hover:text-white rounded-full hover:bg-[#333] transition-colors"
+                            className="p-1 text-muted hover:text-primary rounded-full hover:bg-overlay transition-colors"
                           >
                             <X size={14} />
                           </button>
                         </div>
                         
                         {/* Sorting */}
-                        <div className="p-1 border-b border-[#2a2a2a] pt-2">
+                        <div className="p-1 border-b border-subtle pt-2">
                           <button 
-                            className="w-full text-left px-3 py-1.5 text-xs text-[#cbcbcb] hover:bg-[#222] hover:text-white rounded flex items-center gap-2 transition-colors pr-8"
+                            className="w-full text-left px-3 py-1.5 text-xs text-secondary hover:bg-overlay hover:text-primary rounded flex items-center gap-2 transition-colors pr-8"
                             onClick={() => { setSortColumn(col.name); setSortOrder('asc'); setOpenColumnMenu(null); }}
                           >
                             <ArrowUp size={12} className="text-amber-500" /> Sort Ascending
                           </button>
                           <button 
-                            className="w-full text-left px-3 py-1.5 text-xs text-[#cbcbcb] hover:bg-[#222] hover:text-white rounded flex items-center gap-2 transition-colors pr-8"
+                            className="w-full text-left px-3 py-1.5 text-xs text-secondary hover:bg-overlay hover:text-primary rounded flex items-center gap-2 transition-colors pr-8"
                             onClick={() => { setSortColumn(col.name); setSortOrder('desc'); setOpenColumnMenu(null); }}
                           >
                             <ArrowDown size={12} className="text-amber-500" /> Sort Descending
@@ -348,8 +348,8 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                         </div>
                         
                         {/* Filtering */}
-                        <div className="p-4 bg-[#161616]">
-                          <div className="text-[11px] font-medium text-[#888] mb-3 flex items-center gap-1">
+                        <div className="p-4 bg-base">
+                          <div className="text-[11px] font-medium text-muted mb-3 flex items-center gap-1">
                             <Filter size={10} /> Filter by value
                           </div>
                           
@@ -366,10 +366,10 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                             
                             <div className="space-y-2 mb-4">
                               <div className="flex flex-col gap-1.5">
-                                <span className="text-[10px] text-[#666] font-medium uppercase ml-0.5">Operator</span>
+                                <span className="text-[10px] text-faint font-medium uppercase ml-0.5">Operator</span>
                                 <select 
                                   name="operator" 
-                                  className="w-full bg-[#0d0d0d] border border-[#333] rounded-md px-3 py-2 text-xs text-[#cbcbcb] outline-none focus:border-amber-500/50 transition-all cursor-pointer hover:text-white"
+                                  className="w-full bg-base border border-subtle rounded-md px-3 py-2 text-xs text-secondary outline-none focus:border-amber-500/50 transition-all cursor-pointer hover:text-primary"
                                 >
                                   <option value="eq">Equals</option>
                                   <option value="neq">Not Equals</option>
@@ -382,18 +382,18 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                               </div>
                               
                               <div className="flex flex-col gap-1.5">
-                                <span className="text-[10px] text-[#666] font-medium uppercase ml-0.5">Value</span>
+                                <span className="text-[10px] text-faint font-medium uppercase ml-0.5">Value</span>
                                 <input 
                                   type="text" 
                                   name="value"
                                   placeholder="Value..."
-                                  className="w-full bg-[#0d0d0d] border border-[#333] rounded-md px-3 py-2 text-xs text-[#fff] placeholder:text-[#444] outline-none focus:border-amber-500/50 transition-all"
+                                  className="w-full bg-base border border-subtle rounded-md px-3 py-2 text-xs text-primary placeholder:text-faint outline-none focus:border-amber-500/50 transition-all"
                                   autoFocus
                                 />
                               </div>
                             </div>
                             
-                            <div className="flex justify-end gap-2 border-t border-[#2a2a2a] pt-3">
+                            <div className="flex justify-end gap-2 border-t border-subtle pt-3">
                               <Button type="button" variant="ghost" size="sm" onClick={() => setOpenColumnMenu(null)} className="h-8 text-[11px] px-3">
                                 Cancel
                               </Button>
@@ -412,8 +412,8 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
             <tbody>
               {/* Insert Row Form */}
               {isAdding && (
-                <tr className="border-b border-[#1a1a1a] bg-[#111]">
-                  <td className="px-3 py-2 text-center border-r border-[#1a1a1a]">
+                <tr className="border-b border-subtle bg-surface">
+                  <td className="px-3 py-2 text-center border-r border-subtle">
                     <div className="flex items-center justify-center gap-1">
                       <button onClick={handleInsert} className="p-1 text-green-400 hover:bg-green-400/10 rounded" title="Save">
                         <Check size={12} />
@@ -426,15 +426,15 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                   {columns.map(col => (
                     <td 
                       key={`add-${col.name}`} 
-                      className="px-2 py-1 border-r border-[#1a1a1a]"
+                      className="px-2 py-1 border-r border-subtle"
                       style={{ width: columnWidths[col.name] || 'auto', minWidth: columnWidths[col.name] || '120px' }}
                     >
                       {col.primary && col.type.includes('increment') ? (
-                        <span className="text-[#555] text-[10px] italic px-2">Auto</span>
+                        <span className="text-faint text-[10px] italic px-2">Auto</span>
                       ) : (
                         <input 
                           type="text" 
-                          className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-xs text-white focus:border-amber-500 outline-none"
+                          className="w-full bg-elevated border border-subtle rounded px-2 py-1 text-xs text-primary focus:border-amber-500 outline-none"
                           placeholder={col.nullable ? "null" : ""}
                           value={addState[col.name] || ""}
                           onChange={e => setAddState({...addState, [col.name]: e.target.value})}
@@ -451,8 +451,8 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                 const isEditing = editingRowId === String(rowId);
 
                 return (
-                  <tr key={rowId} className="border-b border-[#141414] hover:bg-[#111] transition-colors">
-                    <td className="px-3 py-2 text-center border-r border-[#141414]">
+                  <tr key={rowId} className="border-b border-subtle hover:bg-surface transition-colors">
+                    <td className="px-3 py-2 text-center border-r border-subtle">
                       {isEditing ? (
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => handleSaveEdit(row)} className="p-1 text-green-400 hover:bg-green-400/10 rounded" title="Save">
@@ -475,10 +475,10 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                                   }
                                   setEditState(safeRow);
                                   setEditingRowId(String(rowId));
-                                }} className="p-1 text-[#8a8a8a] bg-[#1a1a1a] hover:bg-[#222] hover:text-white rounded border border-[#2a2a2a]" title="Edit">
+                                }} className="p-1 text-muted bg-elevated hover:bg-overlay hover:text-primary rounded" title="Edit">
                                   <Edit2 size={12} />
                                 </button>
-                              <button onClick={() => handleDelete(row)} className="p-1 text-[#8a8a8a] bg-[#1a1a1a] hover:bg-red-950/30 hover:text-red-400 rounded border border-[#2a2a2a]" title="Delete">
+                              <button onClick={() => handleDelete(row)} className="p-1 text-muted bg-elevated hover:bg-red-950/30 hover:text-red-400 rounded" title="Delete">
                                 <Trash2 size={12} />
                               </button>
                             </>
@@ -492,18 +492,18 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
                       return (
                         <td 
                           key={col.name} 
-                          className="px-4 py-2 font-mono text-[#f0f0f0] border-r border-[#141414] truncate"
+                          className="px-4 py-2 font-mono text-primary border-r border-subtle truncate"
                           style={{ width: columnWidths[col.name] || 'auto', minWidth: columnWidths[col.name] || '120px', maxWidth: columnWidths[col.name] || '250px' }}
                         >
                           {isEditing && col.name !== primaryKey ? (
                             <input 
                               type="text" 
-                              className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2 py-0.5 text-xs text-white focus:border-amber-500 outline-none"
+                              className="w-full bg-elevated border border-subtle rounded px-2 py-0.5 text-xs text-primary focus:border-amber-500 outline-none"
                               value={editState[col.name] !== null ? editState[col.name] : ""}
                               onChange={e => setEditState({...editState, [col.name]: e.target.value})}
                             />
                           ) : (
-                            val === null ? <span className="text-[#555] italic">null</span> : 
+                            val === null ? <span className="text-faint italic">null</span> : 
                             (typeof val === 'object' ? JSON.stringify(val) : String(val))
                           )}
                         </td>
@@ -515,7 +515,7 @@ export function DataExplorer({ connectionId, tableName, columns, onLogActivity }
               
               {data.length === 0 && !isAdding && (
                 <tr>
-                  <td colSpan={columns.length + 1} className="py-8 text-center text-[#666]">
+                  <td colSpan={columns.length + 1} className="py-8 text-center text-faint">
                     No records found in this table.
                   </td>
                 </tr>

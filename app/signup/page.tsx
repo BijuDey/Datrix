@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Zap, Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -62,16 +63,16 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--bg-base)" }}>
         <div className="w-full max-w-sm text-center">
           <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 size={26} className="text-green-400" />
           </div>
-          <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#f0f0f0] mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-[22px] font-bold tracking-[-0.03em] mb-2" style={{ color: "var(--text-primary)", fontFamily: "'Space Grotesk', sans-serif" }}>
             Check your email
           </h1>
-          <p className="text-[13px] text-[#8a8a8a] leading-relaxed mb-6">
-            We sent a confirmation link to <span className="text-[#f0f0f0]">{form.email}</span>.
+          <p className="text-[13px] leading-relaxed mb-6" style={{ color: "var(--text-muted)" }}>
+            We sent a confirmation link to <span style={{ color: "var(--text-primary)" }}>{form.email}</span>.
             Click it to activate your account and access your workspace.
           </p>
           <Link href="/login" className="text-[13px] text-amber-400 hover:text-amber-300 transition-colors font-medium">
@@ -83,21 +84,16 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080808] flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--bg-base)" }}>
       <div className="w-full max-w-sm">
-        <Link href="/" className="flex items-center gap-2.5 mb-10">
-          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/15 border border-amber-500/25">
-            <Zap size={13} className="text-amber-400" />
-          </div>
-          <span className="text-[15px] font-bold tracking-[-0.03em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Datrix
-          </span>
+        <Link href="/" className="flex mb-10">
+          <BrandLogo iconSize={28} showText textClassName="text-[15px] font-bold tracking-[-0.03em]" />
         </Link>
 
-        <h1 className="text-[24px] font-bold tracking-[-0.03em] text-[#f0f0f0] mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <h1 className="text-[24px] font-bold tracking-[-0.03em] mb-1" style={{ color: "var(--text-primary)", fontFamily: "'Space Grotesk', sans-serif" }}>
           Create your account
         </h1>
-        <p className="text-[13px] text-[#8a8a8a] mb-8">
+        <p className="text-[13px] mb-8" style={{ color: "var(--text-muted)" }}>
           Already have an account?{" "}
           <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
             Sign in
@@ -105,7 +101,7 @@ export default function SignupPage() {
         </p>
 
         {error && (
-          <div className="flex items-center gap-2.5 p-3 mb-4 rounded-lg bg-red-500/8 border border-red-500/20 text-red-400 text-[12px]">
+          <div className="flex items-center gap-2.5 p-3 mb-4 rounded-lg text-[12px]" style={{ background: "var(--error-dim)", border: "1px solid rgba(239,68,68,0.2)", color: "var(--error)" }}>
             <AlertCircle size={13} className="shrink-0" />
             {error}
           </div>
@@ -140,7 +136,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-[#444] hover:text-[#8a8a8a] transition-colors"
+                className="transition-colors" style={{ color: "var(--text-faint)" }}
               >
                 {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
               </button>
@@ -162,11 +158,11 @@ export default function SignupPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-[11px] text-[#444]">
+        <p className="mt-6 text-center text-[11px]" style={{ color: "var(--text-faint)" }}>
           By creating an account, you agree to our{" "}
-          <Link href="#" className="text-[#8a8a8a] hover:text-amber-400 transition-colors">Terms</Link>
+          <Link href="#" className="hover:text-amber-400 transition-colors" style={{ color: "var(--text-muted)" }}>Terms</Link>
           {" "}and{" "}
-          <Link href="#" className="text-[#8a8a8a] hover:text-amber-400 transition-colors">Privacy Policy</Link>.
+          <Link href="#" className="hover:text-amber-400 transition-colors" style={{ color: "var(--text-muted)" }}>Privacy Policy</Link>.
         </p>
       </div>
     </div>

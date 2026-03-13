@@ -18,16 +18,16 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       )}
     >
       {Icon && (
-        <div className="w-14 h-14 rounded-xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center">
-          <Icon size={24} className="text-[#444]" />
+        <div className="w-14 h-14 rounded-xl border border-subtle bg-surface-2 flex items-center justify-center">
+          <Icon size={24} className="text-faint" />
         </div>
       )}
       <div>
-        <p className="text-[14px] font-semibold text-[#f0f0f0]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <p className="text-[14px] font-semibold text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           {title}
         </p>
         {description && (
-          <p className="mt-1 text-[12px] text-[#8a8a8a] max-w-xs mx-auto">{description}</p>
+          <p className="mt-1 text-[12px] text-secondary max-w-xs mx-auto">{description}</p>
         )}
       </div>
       {action}

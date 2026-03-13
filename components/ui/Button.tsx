@@ -11,12 +11,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
 }
 
+// Inline-style variants for theme-aware colors (secondary & ghost use CSS vars)
 const variants = {
-  primary: "bg-amber-500 text-black hover:bg-amber-400 font-semibold shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.35)]",
-  secondary: "bg-[#1e1e1e] text-[#f0f0f0] hover:bg-[#252525] border border-[#2a2a2a] font-medium",
-  ghost: "text-[#8a8a8a] hover:text-[#f0f0f0] hover:bg-[#161616] font-medium",
-  danger: "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 font-medium",
-  outline: "border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 font-medium",
+  primary: "bg-amber-500 text-black hover:bg-amber-400 font-semibold shadow-sm",
+  secondary: "__secondary__",
+  ghost: "__ghost__",
+  danger: "bg-red-500/8 text-red-400 hover:bg-red-500/14 border border-red-500/18 font-medium",
+  outline: "border border-amber-500/25 text-amber-400 hover:bg-amber-500/8 font-medium",
 };
 
 const sizes = {
@@ -26,7 +27,24 @@ const sizes = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "secondary", size = "md", loading, icon, children, disabled, ...props }, ref) => {
+  ({ className, variant = "secondary", size = "md", loading, icon, children, disabled, style, ...props }, ref) => {
+    let variantClass = variants[variant];
+    let variantStyle: React.CSSProperties = {};
+
+    if (variant === "secondary") {
+      variantClass = "border font-medium";
+      variantStyle = {
+        background: "var(--bg-overlay)",
+        color: "var(--text-primary)",
+        borderColor: "var(--border-light)",
+      };
+    } else if (variant === "ghost") {
+      variantClass = "font-medium";
+      variantStyle = {
+        color: "var(--text-muted)",
+      };
+    }
+
     return (
       <button
         ref={ref}
@@ -34,10 +52,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           "inline-flex items-center justify-center transition-all duration-150 cursor-pointer select-none",
           "disabled:opacity-40 disabled:cursor-not-allowed",
-          variants[variant],
+          variant !== "secondary" && variant !== "ghost" && variants[variant],
+          variantClass,
           sizes[size],
           className
         )}
+        style={{ ...variantStyle, ...style }}
         {...props}
       >
         {loading ? <Loader2 className="animate-spin" size={14} /> : icon}

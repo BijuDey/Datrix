@@ -72,10 +72,10 @@ export function RequireOrg({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#080808] items-center justify-center relative">
+      <div className="flex min-h-screen bg-base items-center justify-center relative">
         <div className="flex flex-col items-center gap-4">
-           <div className="w-12 h-12 rounded-xl bg-[#1a1a1a] animate-pulse" />
-           <div className="w-32 h-2 bg-[#1a1a1a] rounded animate-pulse" />
+           <div className="w-12 h-12 rounded-xl skeleton" />
+           <div className="w-32 h-2 rounded skeleton" />
         </div>
       </div>
     );
@@ -86,29 +86,29 @@ export function RequireOrg({ children }: { children: React.ReactNode }) {
 
   if (!org) {
     return (
-      <div className="flex min-h-screen bg-[#080808] items-center justify-center p-6">
-        <div className="w-full max-w-md border border-[#1a1a1a] bg-[#0f0f0f] rounded-2xl shadow-2xl overflow-hidden">
+      <div className="flex min-h-screen bg-base items-center justify-center p-6">
+        <div className="w-full max-w-md border border-subtle bg-surface rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="p-8 pb-6 border-b border-[#141414]">
+          <div className="p-8 pb-6 border-b border-subtle">
             <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-6 mx-auto">
               <Users size={20} className="text-amber-400" />
             </div>
-            <h1 className="text-[22px] font-bold text-center tracking-[-0.03em] text-[#f0f0f0] mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-[22px] font-bold text-center tracking-[-0.03em] text-primary mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Welcome to Datrix
             </h1>
-            <p className="text-[13px] text-[#8a8a8a] text-center leading-relaxed">
+            <p className="text-[13px] text-muted text-center leading-relaxed">
               Get started by creating a workspace or joining an existing one.
             </p>
           </div>
 
           {/* Tabs */}
           {invitations.length > 0 && (
-            <div className="flex border-b border-[#1a1a1a]">
+            <div className="flex border-b border-subtle">
               <button
                 onClick={() => setActiveTab("invites")}
                 className={cn(
                   "flex-1 py-3 text-[13px] font-medium flex items-center justify-center gap-2 transition-colors",
-                  activeTab === "invites" ? "text-amber-400 border-b-2 border-amber-400" : "text-[#8a8a8a] hover:text-[#f0f0f0]"
+                  activeTab === "invites" ? "text-amber-400 border-b-2 border-amber-400" : "text-muted hover:text-primary"
                 )}
               >
                 <Mail size={14} />
@@ -121,7 +121,7 @@ export function RequireOrg({ children }: { children: React.ReactNode }) {
                 onClick={() => setActiveTab("create")}
                 className={cn(
                   "flex-1 py-3 text-[13px] font-medium flex items-center justify-center gap-2 transition-colors",
-                  activeTab === "create" ? "text-amber-400 border-b-2 border-amber-400" : "text-[#8a8a8a] hover:text-[#f0f0f0]"
+                  activeTab === "create" ? "text-amber-400 border-b-2 border-amber-400" : "text-muted hover:text-primary"
                 )}
               >
                 <Plus size={14} />
@@ -130,25 +130,25 @@ export function RequireOrg({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <div className="p-8 bg-[#0a0a0a]">
+          <div className="p-8 bg-base">
             {activeTab === "invites" && invitations.length > 0 && (
               <div className="space-y-4">
                 {invitations.map((invite) => (
-                  <div key={invite.id} className="p-4 rounded-xl border border-[#1a1a1a] bg-[#111] space-y-4">
+                  <div key={invite.id} className="p-4 rounded-xl border border-subtle bg-surface space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#161616] border border-[#222] flex items-center justify-center shrink-0">
-                        <Building size={18} className="text-[#8a8a8a]" />
+                      <div className="w-10 h-10 rounded-lg bg-elevated border border-subtle flex items-center justify-center shrink-0">
+                        <Building size={18} className="text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium text-[#f0f0f0] truncate">
+                        <p className="text-[14px] font-medium text-primary truncate">
                           {invite.organizations?.name || "Unknown Workspace"}
                         </p>
-                        <p className="text-[12px] text-[#8a8a8a] mt-0.5">
-                          Invited by <span className="text-[#ccc]">{invite.profiles?.full_name || "a team member"}</span>
+                        <p className="text-[12px] text-muted mt-0.5">
+                          Invited by <span className="text-secondary">{invite.profiles?.full_name || "a team member"}</span>
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-[#1a1a1a]">
+                    <div className="flex items-center gap-2 pt-1 border-t border-subtle">
                       <Button
                         variant="primary"
                         size="sm"

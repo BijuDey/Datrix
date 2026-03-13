@@ -188,16 +188,16 @@ export default function TeamsPage() {
 
         {/* ── Invite Panel ── */}
         {showInvite && (
-          <div className="rounded-2xl bg-[#0f0f0f] border border-[#1e1e1e] overflow-hidden">
+          <div className="rounded-2xl bg-surface border border-subtle overflow-hidden">
             {/* Panel header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#181818]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-subtle">
               <div className="flex items-center gap-2">
                 <Mail size={14} className="text-amber-400" />
-                <h3 className="text-[13px] font-semibold text-[#f0f0f0]">Invite a team member</h3>
+                <h3 className="text-[13px] font-semibold text-primary">Invite a team member</h3>
               </div>
               <button
                 onClick={closeInvite}
-                className="text-[#444] hover:text-[#f0f0f0] transition-colors"
+                className="text-muted hover:text-primary transition-colors"
               >
                 <X size={15} />
               </button>
@@ -230,7 +230,7 @@ export default function TeamsPage() {
 
               {/* Role picker */}
               <div>
-                <p className="text-[11px] font-medium text-[#666] mb-2.5 uppercase tracking-wider">Select role</p>
+                <p className="text-[11px] font-medium text-secondary mb-2.5 uppercase tracking-wider">Select role</p>
                 <div className="grid grid-cols-2 gap-2">
                   {INVITABLE_ROLES.map((r) => {
                     const active = inviteRole === r.value;
@@ -242,17 +242,17 @@ export default function TeamsPage() {
                           "relative flex flex-col gap-1.5 p-3.5 rounded-xl border text-left transition-all",
                           active
                             ? cn("border-opacity-60", r.border, r.bg)
-                            : "border-[#1e1e1e] bg-[#0a0a0a] hover:border-[#2a2a2a]"
+                            : "border-subtle bg-surface hover:border-strong"
                         )}
                       >
                         {active && (
                           <span className={cn("absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full", r.color.replace("text-", "bg-"))} />
                         )}
-                        <div className={cn("flex items-center gap-1.5", active ? r.color : "text-[#555]")}>
+                        <div className={cn("flex items-center gap-1.5", active ? r.color : "text-muted")}>
                           <r.icon size={12} />
                           <span className="text-[12px] font-semibold">{r.label}</span>
                         </div>
-                        <p className="text-[11px] text-[#555] leading-relaxed">{r.desc}</p>
+                        <p className="text-[11px] text-muted leading-relaxed">{r.desc}</p>
                       </button>
                     );
                   })}
@@ -261,7 +261,7 @@ export default function TeamsPage() {
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-1">
-                <button onClick={closeInvite} className="text-[12px] text-[#444] hover:text-[#888] transition-colors">
+                <button onClick={closeInvite} className="text-[12px] text-muted hover:text-secondary transition-colors">
                   Cancel
                 </button>
                 <Button
@@ -280,33 +280,33 @@ export default function TeamsPage() {
         )}
 
         {/* ── Members list ── */}
-        <div className="rounded-2xl bg-[#0f0f0f] border border-[#1a1a1a] overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-[#141414] flex items-center gap-2">
+        <div className="rounded-2xl bg-surface border border-subtle overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-subtle flex items-center gap-2">
             <Users size={13} className="text-amber-400" />
-            <h2 className="text-[13px] font-semibold text-[#f0f0f0]">Members</h2>
-            <span className="ml-auto text-[11px] text-[#333] tabular-nums">{members.length}</span>
+            <h2 className="text-[13px] font-semibold text-primary">Members</h2>
+            <span className="ml-auto text-[11px] text-faint tabular-nums">{members.length}</span>
           </div>
 
           {loading ? (
-            <div className="divide-y divide-[#111]">
+            <div className="divide-y divide-border">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4 px-5 py-4">
-                  <div className="w-9 h-9 rounded-full bg-[#1a1a1a] animate-pulse" />
+                  <div className="w-9 h-9 rounded-full skeleton" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-2.5 bg-[#1a1a1a] rounded w-32 animate-pulse" />
-                    <div className="h-2 bg-[#151515] rounded w-48 animate-pulse" />
+                    <div className="h-2.5 rounded w-32 skeleton" />
+                    <div className="skeleton h-2 w-48" />
                   </div>
                 </div>
               ))}
             </div>
           ) : members.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Users size={24} className="text-[#2a2a2a] mb-3" />
-              <p className="text-[13px] text-[#444]">No members yet</p>
-              <p className="text-[11px] text-[#333] mt-1">Invite your first team member above</p>
+              <Users size={24} className="text-faint mb-3" />
+              <p className="text-[13px] text-muted">No members yet</p>
+              <p className="text-[11px] text-faint mt-1">Invite your first team member above</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#111]">
+            <div className="divide-y divide-border">
               {members.map((member) => {
                 const name = member.profiles?.full_name || "Unknown";
                 const isCurrentUser = member.user_id === user?.id;
@@ -316,7 +316,7 @@ export default function TeamsPage() {
                 return (
                   <div
                     key={member.id}
-                    className="flex items-center gap-3.5 px-5 py-4 hover:bg-[#0a0a0a] transition-colors group"
+                    className="flex items-center gap-3.5 px-5 py-4 hover:bg-surface transition-colors group"
                   >
                     {/* Avatar */}
                     <div className="w-9 h-9 rounded-full bg-amber-500/12 border border-amber-500/15 flex items-center justify-center text-[11px] font-bold text-amber-400 shrink-0">
@@ -326,14 +326,14 @@ export default function TeamsPage() {
                     {/* Name + email */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[13px] font-medium text-[#f0f0f0] truncate">{name}</p>
+                        <p className="text-[13px] font-medium text-primary truncate">{name}</p>
                         {isCurrentUser && (
-                          <span className="text-[9px] text-[#333] bg-[#161616] border border-[#222] px-1.5 py-0.5 rounded-full">
+                          <span className="text-[9px] text-faint bg-surface-3 border border-default px-1.5 py-0.5 rounded-full">
                             you
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#3a3a3a] truncate mt-0.5">{member.user_email}</p>
+                      <p className="text-[11px] text-muted truncate mt-0.5">{member.user_email}</p>
                     </div>
 
                     {/* Role + actions */}
@@ -341,7 +341,7 @@ export default function TeamsPage() {
                       {canModify ? (
                         <div className="relative">
                           {updatingId === member.id ? (
-                            <RefreshCw size={13} className="animate-spin text-[#333]" />
+                            <RefreshCw size={13} className="animate-spin text-faint" />
                           ) : (
                             <select
                               value={member.role}
@@ -349,7 +349,7 @@ export default function TeamsPage() {
                               className="appearance-none cursor-pointer bg-transparent focus:outline-none"
                             >
                               {INVITABLE_ROLES.map((r) => (
-                                <option key={r.value} value={r.value} className="bg-[#111] text-[#f0f0f0]">
+                                <option key={r.value} value={r.value} className="bg-surface-2 text-primary">
                                   {r.label}
                                 </option>
                               ))}
@@ -361,7 +361,7 @@ export default function TeamsPage() {
                       {canModify && (
                         <button
                           onClick={() => handleRemove(member.id, member.user_id)}
-                          className="opacity-0 group-hover:opacity-100 text-[#2a2a2a] hover:text-red-500 transition-all ml-1"
+                          className="opacity-0 group-hover:opacity-100 text-faint hover:text-red-500 transition-all ml-1"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -376,7 +376,7 @@ export default function TeamsPage() {
 
         {/* ── Role legend ── */}
         <div>
-          <p className="text-[11px] font-medium text-[#444] uppercase tracking-wider mb-2.5">Role permissions</p>
+          <p className="text-[11px] font-medium text-muted uppercase tracking-wider mb-2.5">Role permissions</p>
           <div className="grid grid-cols-3 gap-2">
             {ROLES.map((r) => (
               <div
@@ -390,7 +390,7 @@ export default function TeamsPage() {
                   <r.icon size={12} />
                   <span className="text-[12px] font-semibold">{r.label}</span>
                 </div>
-                <p className="text-[11px] text-[#555] leading-relaxed">{r.desc}</p>
+                <p className="text-[11px] text-muted leading-relaxed">{r.desc}</p>
               </div>
             ))}
           </div>

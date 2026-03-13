@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { ArrowRight, Zap, Database, HardDrive, Users, ScrollText, Shield } from "lucide-react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#080808] text-[#f0f0f0]">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 h-[60px] border-b border-[#141414]">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/15 border border-amber-500/25">
-            <Zap size={13} className="text-amber-400" />
-          </div>
-          <span className="text-[15px] font-bold tracking-[-0.03em]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Datrix
-          </span>
-        </div>
+        <BrandLogo
+          iconSize={28}
+          showText
+          textClassName="text-[15px] font-bold tracking-[-0.03em]"
+          className="flex items-center gap-2.5"
+        />
         <div className="flex items-center gap-3">
           <Link
             href="/login"

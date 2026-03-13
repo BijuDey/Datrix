@@ -16,9 +16,13 @@ import { encrypt } from "@/lib/crypto";
 import { formatRelativeTime, cn } from "@/lib/utils";
 import Link from "next/link";
 
-const DB_TYPES = [
+const SQL_DB_TYPES = [
   { value: "postgres", label: "PostgreSQL", color: "text-blue-400" },
   { value: "mysql", label: "MySQL", color: "text-orange-400" },
+];
+
+const ALL_CONNECTION_TYPES = [
+  ...SQL_DB_TYPES,
   { value: "s3", label: "S3 / Object Storage", color: "text-yellow-400" },
 ];
 
@@ -57,7 +61,7 @@ const defaultForm: FormState = {
 
 export default function DatabasesPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#080808] p-10 text-center text-[#8a8a8a]">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-bg-base p-10 text-center text-secondary">Loading...</div>}>
       <DatabasesPageContent />
     </Suspense>
   );
@@ -76,6 +80,7 @@ function DatabasesPageContent() {
   const [testMsg, setTestMsg] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [initialType, setInitialType] = useState<"postgres" | "mysql" | "s3">("postgres");
 
   useEffect(() => {
     if (org) {
@@ -88,6 +93,11 @@ function DatabasesPageContent() {
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {
+      const requestedType = searchParams.get("type");
+      if (requestedType === "s3") {
+        setInitialType("s3");
+        setForm((prev) => ({ ...prev, type: "s3", port: "" }));
+      }
       setShowModal(true);
       router.replace("/dashboard/databases");
     }
@@ -100,6 +110,7 @@ function DatabasesPageContent() {
     const { data, error } = await supabase
       .from("database_connections")
       .select("id, name, type, created_at, created_by")
+      .in("type", ["postgres", "mysql"])
       .order("created_at", { ascending: false });
     if (!error) setConnections(data as Connection[]);
     setLoading(false);
@@ -203,14 +214,14 @@ function DatabasesPageContent() {
         {loading ? (
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] animate-pulse" />
+              <div key={i} className="skeleton h-20 rounded-xl" />
             ))}
           </div>
         ) : connections.length === 0 ? (
-          <div className="py-20 text-center rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] border-dashed">
-            <Database size={36} className="text-[#333] mx-auto mb-4" />
-            <p className="text-[15px] font-semibold text-[#555]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>No connections yet</p>
-            <p className="text-[13px] text-[#444] mt-1 mb-6">Add a PostgreSQL, MySQL, or S3 connection to get started</p>
+          <div className="py-20 text-center rounded-xl bg-surface border border-subtle border-dashed">
+            <Database size={36} className="text-faint mx-auto mb-4" />
+            <p className="text-[15px] font-semibold text-muted" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>No connections yet</p>
+            <p className="text-[13px] text-muted mt-1 mb-6">Add a PostgreSQL or MySQL connection to get started</p>
             <Button variant="primary" size="sm" icon={<Plus size={13} />} onClick={() => setShowModal(true)}>
               Add Connection
             </Button>
@@ -220,21 +231,21 @@ function DatabasesPageContent() {
             {connections.map((conn) => (
               <div
                 key={conn.id}
-                className="flex items-center gap-4 p-4 rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] hover:border-[#252525] transition-all group"
+                className="flex items-center gap-4 p-4 rounded-xl bg-surface border border-subtle hover:border-default transition-all group"
               >
-                <div className="w-10 h-10 rounded-lg bg-[#161616] border border-[#252525] flex items-center justify-center shrink-0">
-                  <Database size={16} className={DB_TYPES.find(t => t.value === conn.type)?.color || "text-[#8a8a8a]"} />
+                <div className="w-10 h-10 rounded-lg bg-surface-2 border border-border flex items-center justify-center shrink-0">
+                  <Database size={16} className={ALL_CONNECTION_TYPES.find(t => t.value === conn.type)?.color || "text-secondary"} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-[14px] font-semibold text-[#f0f0f0]">{conn.name}</h3>
+                    <h3 className="text-[14px] font-semibold text-primary">{conn.name}</h3>
                     <Badge variant={conn.type === "postgres" ? "info" : conn.type === "mysql" ? "warning" : "default"}>
-                      {DB_TYPES.find(t => t.value === conn.type)?.label || conn.type}
+                      {ALL_CONNECTION_TYPES.find(t => t.value === conn.type)?.label || conn.type}
                     </Badge>
                   </div>
-                  <p className="text-[11px] text-[#444]">Added {formatRelativeTime(conn.created_at)}</p>
+                  <p className="text-[11px] text-muted">Added {formatRelativeTime(conn.created_at)}</p>
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-2">
                   <Link href={`/dashboard/databases/${conn.id}`}>
                     <Button variant="outline" size="sm" icon={<ChevronRight size={12} />}>
                       Open
@@ -262,12 +273,12 @@ function DatabasesPageContent() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-          <div className="relative w-full max-w-lg bg-[#0f0f0f] border border-[#222] rounded-2xl overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1a1a]">
-              <h2 className="text-[15px] font-semibold text-[#f0f0f0]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <div className="relative w-full max-w-lg bg-surface border border-default rounded-2xl overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-subtle">
+              <h2 className="text-[15px] font-semibold text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Add Connection
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-[#444] hover:text-[#f0f0f0] transition-colors">
+              <button onClick={() => setShowModal(false)} className="text-muted hover:text-primary transition-colors">
                 <X size={16} />
               </button>
             </div>
@@ -288,9 +299,9 @@ function DatabasesPageContent() {
 
               {/* Type selector */}
               <div>
-                <label className="text-[12px] font-medium text-[#8a8a8a] mb-1.5 block">Database type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {DB_TYPES.map((t) => (
+                <label className="text-[12px] font-medium text-secondary mb-1.5 block">Database type</label>
+                <div className={cn("grid gap-2", initialType === "s3" ? "grid-cols-1" : "grid-cols-2")}>
+                  {(initialType === "s3" ? ALL_CONNECTION_TYPES.filter((t) => t.value === "s3") : SQL_DB_TYPES).map((t) => (
                     <button
                       key={t.value}
                       type="button"
@@ -302,7 +313,7 @@ function DatabasesPageContent() {
                         "py-2.5 px-3 rounded-lg border text-[12px] font-medium transition-all",
                         form.type === t.value
                           ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                          : "bg-[#111] border-[#1f1f1f] text-[#8a8a8a] hover:border-[#2a2a2a] hover:text-[#f0f0f0]"
+                          : "bg-surface-2 border-default text-secondary hover:border-strong hover:text-primary"
                       )}
                     >
                       {t.label}
@@ -323,15 +334,15 @@ function DatabasesPageContent() {
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-1 mb-2 p-1 bg-[#161616] rounded-lg w-fit border border-[#222]">
+                  <div className="flex items-center gap-1 mb-2 p-1 bg-surface-3 rounded-lg w-fit border border-default">
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, connectionMode: "form" })}
                       className={cn(
                         "px-3 py-1.5 text-[12px] font-medium rounded-md transition-all",
                         form.connectionMode === "form"
-                          ? "bg-[#2a2a2a] text-[#f0f0f0] shadow-sm"
-                          : "text-[#8a8a8a] hover:text-[#ccc]"
+                          ? "bg-surface-3 text-primary shadow-sm"
+                          : "text-secondary hover:text-primary"
                       )}
                     >
                       Parameters
@@ -342,8 +353,8 @@ function DatabasesPageContent() {
                       className={cn(
                         "px-3 py-1.5 text-[12px] font-medium rounded-md transition-all",
                         form.connectionMode === "url"
-                          ? "bg-[#2a2a2a] text-[#f0f0f0] shadow-sm"
-                          : "text-[#8a8a8a] hover:text-[#ccc]"
+                          ? "bg-surface-3 text-primary shadow-sm"
+                          : "text-secondary hover:text-primary"
                       )}
                     >
                       URL Connect
@@ -388,7 +399,7 @@ function DatabasesPageContent() {
               )}
             </div>
 
-            <div className="flex items-center gap-3 px-6 py-4 border-t border-[#1a1a1a]">
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-subtle">
               <Button
                 variant="outline"
                 size="sm"

@@ -121,30 +121,30 @@ export default function AdminPage() {
         </PageHeader>
 
         {loading ? (
-          <div className="rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] h-64 animate-pulse" />
+          <div className="rounded-xl skeleton h-64" />
         ) : (
           <>
             {connections.length === 0 || members.length === 0 ? (
-              <div className="py-20 text-center rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] border-dashed">
-                <AlertCircle size={28} className="text-[#444] mx-auto mb-3" />
-                <p className="text-[13px] text-[#555]">
+              <div className="py-20 text-center rounded-xl bg-surface border border-subtle border-dashed">
+                <AlertCircle size={28} className="text-muted mx-auto mb-3" />
+                <p className="text-[13px] text-muted">
                   {connections.length === 0 ? "No connections yet — add a database connection first." : "No team members yet."}
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl bg-[#0f0f0f] border border-[#1a1a1a] overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#141414] flex items-center gap-2">
+              <div className="rounded-xl bg-surface border border-subtle overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-subtle flex items-center gap-2">
                   <ShieldCheck size={14} className="text-amber-400" />
-                  <h2 className="text-[13px] font-semibold text-[#f0f0f0]">Database Access Matrix</h2>
-                  <span className="ml-auto text-[11px] text-[#444]">Toggle cells to grant/revoke database access per user</span>
+                  <h2 className="text-[13px] font-semibold text-primary">Database Access Matrix</h2>
+                  <span className="ml-auto text-[11px] text-muted">Toggle cells to grant/revoke database access per user</span>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#141414]">
+                      <tr className="border-b border-subtle">
                         <th className="px-5 py-3 text-left">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#555] uppercase tracking-wider">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold text-muted uppercase tracking-wider">
                             <Users size={11} />
                             Member
                           </div>
@@ -152,8 +152,8 @@ export default function AdminPage() {
                         {connections.map((conn) => (
                           <th key={conn.id} className="px-4 py-3 text-center min-w-[120px]">
                             <div className="flex flex-col items-center gap-1">
-                              <Database size={12} className="text-[#555]" />
-                              <span className="text-[11px] font-medium text-[#8a8a8a] truncate max-w-[100px]">{conn.name}</span>
+                              <Database size={12} className="text-muted" />
+                              <span className="text-[11px] font-medium text-secondary truncate max-w-[100px]">{conn.name}</span>
                               <Badge variant={conn.type === "postgres" ? "info" : conn.type === "mysql" ? "warning" : "default"}>
                                 {conn.type === "postgres" ? "PG" : conn.type === "mysql" ? "MY" : "S3"}
                               </Badge>
@@ -162,24 +162,24 @@ export default function AdminPage() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#141414]">
+                    <tbody className="divide-y divide-border">
                       {members.map((member) => {
                         const isOrgAdmin = member.role === "admin";
                         return (
-                          <tr key={member.user_id} className="hover:bg-[#111] transition-colors">
+                          <tr key={member.user_id} className="hover:bg-surface-2 transition-colors">
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-[11px] font-bold text-amber-400 shrink-0">
                                   {getInitials(member.name)}
                                 </div>
                                 <div>
-                                  <p className="text-[13px] font-medium text-[#f0f0f0]">{member.name}</p>
+                                  <p className="text-[13px] font-medium text-primary">{member.name}</p>
                                   <div className="flex items-center gap-2">
-                                    <p className="text-[11px] text-[#444]">{member.email}</p>
+                                    <p className="text-[11px] text-muted">{member.email}</p>
                                     <span className={cn("text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded border",
                                       member.role === "admin"  ? "bg-amber-500/15 text-amber-400 border-amber-500/25" :
                                       member.role === "editor" ? "bg-blue-500/15 text-blue-400 border-blue-500/25" :
-                                      "bg-[#1e1e1e] text-[#555] border-[#2a2a2a]"
+                                      "bg-surface-3 text-muted border-strong"
                                     )}>
                                       {member.role}
                                     </span>
@@ -209,17 +209,17 @@ export default function AdminPage() {
                                         "mx-auto flex items-center justify-center w-7 h-7 rounded-lg border transition-all",
                                         granted
                                           ? "bg-green-500/10 border-green-500/20 hover:bg-red-500/10 hover:border-red-500/20"
-                                          : "bg-[#161616] border-[#252525] hover:bg-amber-500/10 hover:border-amber-500/25"
+                                          : "bg-surface-3 border-default hover:bg-amber-500/10 hover:border-amber-500/25"
                                       )}
                                     >
                                       {isToggling ? (
-                                        <RefreshCw size={11} className="animate-spin text-[#555]" />
+                                        <RefreshCw size={11} className="animate-spin text-muted" />
                                       ) : wasSaved ? (
                                         <Check size={11} className="text-green-400" />
                                       ) : granted ? (
                                         <CheckSquare size={12} className="text-green-400" />
                                       ) : (
-                                        <Square size={12} className="text-[#444]" />
+                                        <Square size={12} className="text-muted" />
                                       )}
                                     </button>
                                   )}

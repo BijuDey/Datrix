@@ -6,7 +6,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <AuthProvider>
       <RequireOrg>
-        <div className="flex min-h-screen bg-[#080808] text-[#f0f0f0]">
+        <div className="flex min-h-screen bg-base text-primary">
           <Sidebar />
           <main className="flex-1 min-w-0 ml-[248px]">
             {children}
