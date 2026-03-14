@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Datrix
 
-## Getting Started
+Datrix is a modern data control platform for teams that need one place to manage:
 
-First, run the development server:
+- PostgreSQL and MySQL connections
+- SQL querying and schema exploration
+- S3-compatible object storage
+- Team access and organization workflows
+- Operational and query logs
+
+## Tech Stack
+
+- Next.js (App Router)
+- React + TypeScript
+- Supabase Auth (SSR helpers)
+- PostgreSQL and MySQL drivers
+- AWS SDK for S3-compatible storage
+
+## Features
+
+- Multi-connection data workspace
+- SQL query execution through API routes
+- Schema introspection endpoints
+- Storage bucket and object operations
+- Organization, team, and invitation management
+- Feature flags for modular enable/disable
+
+## Quick Start
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create local environment file:
+
+```bash
+cp .env .env.local
+```
+
+3. Update values in .env.local for your environment.
+
+4. Start development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- npm run dev: Start local development server
+- npm run build: Build production bundle
+- npm run start: Run production server
+- npm run lint: Run ESLint checks
 
-## Learn More
+## Documentation
 
-To learn more about Next.js, take a look at the following resources:
+- [Setup Guide](SETUP.md)
+- [Architecture](ARCHITECTURE.md)
+- [Deployment Guide](DEPLOYMENT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [Project Plan](plan.md)
+- [MongoDB Feature Proposal](docs/FEATURE_MONGODB_SUPPORT.md)
+- [New Organization Flow Proposal](docs/FEATURE_NEW_ORGANIZATION_FLOW.md)
+- [Roadmap](docs/ROADMAP.md)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+High-level directories:
 
-## Deploy on Vercel
+- app: UI routes and API endpoints
+- components: Shared UI and feature components
+- lib: Auth, crypto, utilities, and clients
+- config: App-level configuration
+- theme: Theme primitives
+- types: Shared TypeScript types
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Security Note
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Do not commit real secrets. Use local-only env files and rotate any credential that has been shared publicly.
+
+## License
+
+This project is licensed under the terms in [LICENSE](LICENSE).
