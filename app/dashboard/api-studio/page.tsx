@@ -68,7 +68,13 @@ type SaveShortcut = {
   key: string;
 };
 
-type EditorTab = "params" | "authorization" | "headers" | "body" | "scripts" | "settings";
+type EditorTab =
+  | "params"
+  | "authorization"
+  | "headers"
+  | "body"
+  | "scripts"
+  | "settings";
 
 type KvRow = {
   id: string;
@@ -95,21 +101,23 @@ const SCRIPT_SUGGESTIONS: Array<{
     title: "Set dynamic timestamp",
     appliesTo: "preRequestScript",
     description: "Create a request-time variable before the call is sent.",
-    snippet: "pm.environment.set(\"currentTimestamp\", Date.now());",
+    snippet: 'pm.environment.set("currentTimestamp", Date.now());',
   },
   {
     id: "pre-generate-id",
     title: "Generate request ID",
     appliesTo: "preRequestScript",
     description: "Attach a unique value you can reuse in headers/body.",
-    snippet: "pm.environment.set(\"requestId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+    snippet:
+      'pm.environment.set("requestId", pm.variables.replaceIn("{{$guid}}"));',
   },
   {
     id: "test-status",
     title: "Assert status code",
     appliesTo: "testsScript",
     description: "Basic response validation to ensure API health.",
-    snippet: "pm.test(\"Status code is 200\", function () {\n  pm.response.to.have.status(200);\n});",
+    snippet:
+      'pm.test("Status code is 200", function () {\n  pm.response.to.have.status(200);\n});',
   },
   {
     id: "test-json-field",
@@ -117,20 +125,24 @@ const SCRIPT_SUGGESTIONS: Array<{
     appliesTo: "testsScript",
     description: "Check required fields in response payload.",
     snippet:
-      "pm.test(\"Response has success=true\", function () {\n  const body = pm.response.json();\n  pm.expect(body).to.have.property(\"success\", true);\n});",
+      'pm.test("Response has success=true", function () {\n  const body = pm.response.json();\n  pm.expect(body).to.have.property("success", true);\n});',
   },
   {
     id: "test-response-time",
     title: "Assert response time",
     appliesTo: "testsScript",
     description: "Track latency and fail if endpoint is too slow.",
-    snippet: "pm.test(\"Response time under 1000ms\", function () {\n  pm.expect(pm.response.responseTime).to.be.below(1000);\n});",
+    snippet:
+      'pm.test("Response time under 1000ms", function () {\n  pm.expect(pm.response.responseTime).to.be.below(1000);\n});',
   },
 ];
 
 function makeRow(partial?: Partial<KvRow>): KvRow {
   return {
-    id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+    id:
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`,
     enabled: partial?.enabled ?? true,
     key: partial?.key ?? "",
     value: partial?.value ?? "",
@@ -175,13 +187,18 @@ function toRecord(rows: KvRow[]): Record<string, string> {
 
 function withTrailingBlank(rows: KvRow[]): KvRow[] {
   const next = [...rows];
-  const hasBlank = next.some((row) => !row.key.trim() && !row.value.trim() && !row.description.trim());
+  const hasBlank = next.some(
+    (row) => !row.key.trim() && !row.value.trim() && !row.description.trim()
+  );
   if (!hasBlank) next.push(makeRow({ enabled: true }));
   return next;
 }
 
 function getDefaultShortcut(): SaveShortcut {
-  if (typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac")) {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.platform.toLowerCase().includes("mac")
+  ) {
     return { modifier: "meta", key: "s" };
   }
   return { modifier: "ctrl", key: "s" };
@@ -199,7 +216,9 @@ function parseShortcut(input: string | null): SaveShortcut {
     return fallback;
   }
 
-  const normalizedKey = String(key || "").trim().toLowerCase();
+  const normalizedKey = String(key || "")
+    .trim()
+    .toLowerCase();
   if (!normalizedKey) return fallback;
 
   return {
@@ -248,20 +267,31 @@ function shortcutMatches(event: KeyboardEvent, shortcut: SaveShortcut) {
   return modifierMatch && pressedKey === expectedKey;
 }
 
-function buildResolvedUrl(baseUrl: string, params: KvRow[], vars: Record<string, string>) {
+function buildResolvedUrl(
+  baseUrl: string,
+  params: KvRow[],
+  vars: Record<string, string>
+) {
   const interpolatedBaseUrl = interpolateTemplate(baseUrl, vars);
   const parsed = new URL(interpolatedBaseUrl);
 
   for (const row of params) {
     const key = row.key.trim();
     if (!row.enabled || !key) continue;
-    parsed.searchParams.set(interpolateTemplate(key, vars), interpolateTemplate(row.value, vars));
+    parsed.searchParams.set(
+      interpolateTemplate(key, vars),
+      interpolateTemplate(row.value, vars)
+    );
   }
 
   return parsed.toString();
 }
 
-function inferAuthFromHeaders(headers: Record<string, string>): { authType: AuthType; authToken: string; headers: Record<string, string> } {
+function inferAuthFromHeaders(headers: Record<string, string>): {
+  authType: AuthType;
+  authToken: string;
+  headers: Record<string, string>;
+} {
   const next = { ...headers };
   const authHeader = next.Authorization || next.authorization || "";
 
@@ -289,9 +319,15 @@ export default function ApiStudioPage() {
   const [environments, setEnvironments] = useState<ApiEnvironment[]>([]);
   const [requests, setRequests] = useState<ApiRequest[]>([]);
 
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
-  const [selectedEnvironmentId, setSelectedEnvironmentId] = useState<string | null>(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<
+    string | null
+  >(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
+    null
+  );
+  const [selectedEnvironmentId, setSelectedEnvironmentId] = useState<
+    string | null
+  >(null);
 
   const [activeTab, setActiveTab] = useState<EditorTab>("params");
 
@@ -320,10 +356,22 @@ export default function ApiStudioPage() {
   const [running, setRunning] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importJson, setImportJson] = useState("");
-  const [saveShortcut, setSaveShortcut] = useState<SaveShortcut>(getDefaultShortcut());
-  const [collapsedCollectionIds, setCollapsedCollectionIds] = useState<Record<string, boolean>>({});
+  const [saveShortcut, setSaveShortcut] = useState<SaveShortcut>(
+    getDefaultShortcut()
+  );
+  const [collapsedCollectionIds, setCollapsedCollectionIds] = useState<
+    Record<string, boolean>
+  >({});
   const [railSection, setRailSection] = useState<
-    "collections" | "environments" | "history" | "apis" | "mock-servers" | "specs" | "monitors" | "flows" | "insights"
+    | "collections"
+    | "environments"
+    | "history"
+    | "apis"
+    | "mock-servers"
+    | "specs"
+    | "monitors"
+    | "flows"
+    | "insights"
   >("collections");
   const [sidebarQuery, setSidebarQuery] = useState("");
 
@@ -341,27 +389,34 @@ export default function ApiStudioPage() {
   );
 
   const paramsCount = useMemo(
-    () => editor.paramsRows.filter((row) => row.enabled && row.key.trim()).length,
+    () =>
+      editor.paramsRows.filter((row) => row.enabled && row.key.trim()).length,
     [editor.paramsRows]
   );
 
   const headersCount = useMemo(() => {
-    const base = editor.headersRows.filter((row) => row.enabled && row.key.trim()).length;
-    if (editor.authType === "bearer" && editor.authToken.trim()) return base + 1;
+    const base = editor.headersRows.filter(
+      (row) => row.enabled && row.key.trim()
+    ).length;
+    if (editor.authType === "bearer" && editor.authToken.trim())
+      return base + 1;
     return base;
   }, [editor.headersRows, editor.authType, editor.authToken]);
 
   const filteredCollections = useMemo(() => {
     const query = sidebarQuery.trim().toLowerCase();
     if (!query) return collections;
-    return collections.filter((collection) => collection.name.toLowerCase().includes(query));
+    return collections.filter((collection) =>
+      collection.name.toLowerCase().includes(query)
+    );
   }, [collections, sidebarQuery]);
 
   const filteredRequests = useMemo(() => {
     const query = sidebarQuery.trim().toLowerCase();
     if (!query) return requests;
     return requests.filter((request) => {
-      const hay = `${request.name} ${request.url} ${request.method}`.toLowerCase();
+      const hay =
+        `${request.name} ${request.url} ${request.method}`.toLowerCase();
       return hay.includes(query);
     });
   }, [requests, sidebarQuery]);
@@ -405,7 +460,10 @@ export default function ApiStudioPage() {
     let bodyText = "";
     if (typeof selectedRequest.body === "string") {
       bodyText = selectedRequest.body;
-    } else if (selectedRequest.body !== null && selectedRequest.body !== undefined) {
+    } else if (
+      selectedRequest.body !== null &&
+      selectedRequest.body !== undefined
+    ) {
       bodyText = JSON.stringify(selectedRequest.body, null, 2);
     }
 
@@ -455,13 +513,16 @@ export default function ApiStudioPage() {
     });
 
     setSelectedCollectionId((current) => {
-      if (current && rows.some((row: ApiCollection) => row.id === current)) return current;
+      if (current && rows.some((row: ApiCollection) => row.id === current))
+        return current;
       return rows.length > 0 ? rows[0].id : null;
     });
   }
 
   async function loadRequests(orgId: string, collectionId: string) {
-    const response = await fetch(`/api/api-studio/requests?org_id=${orgId}&collection_id=${collectionId}`);
+    const response = await fetch(
+      `/api/api-studio/requests?org_id=${orgId}&collection_id=${collectionId}`
+    );
     if (!response.ok) return;
     const payload = await response.json();
     const rows = payload.requests || [];
@@ -474,20 +535,24 @@ export default function ApiStudioPage() {
     }
 
     setSelectedRequestId((current) => {
-      if (current && rows.some((row: ApiRequest) => row.id === current)) return current;
+      if (current && rows.some((row: ApiRequest) => row.id === current))
+        return current;
       return rows[0].id;
     });
   }
 
   async function loadEnvironments(orgId: string) {
-    const response = await fetch(`/api/api-studio/environments?org_id=${orgId}`);
+    const response = await fetch(
+      `/api/api-studio/environments?org_id=${orgId}`
+    );
     if (!response.ok) return;
     const payload = await response.json();
     const rows = payload.environments || [];
     setEnvironments(rows);
 
     setSelectedEnvironmentId((current) => {
-      if (current && rows.some((row: ApiEnvironment) => row.id === current)) return current;
+      if (current && rows.some((row: ApiEnvironment) => row.id === current))
+        return current;
       return rows.length > 0 ? rows[0].id : null;
     });
   }
@@ -538,7 +603,9 @@ export default function ApiStudioPage() {
 
   async function renameCollection(collection: ApiCollection) {
     if (!org || !canEdit) return;
-    const nextName = window.prompt("Rename collection", collection.name)?.trim();
+    const nextName = window
+      .prompt("Rename collection", collection.name)
+      ?.trim();
     if (!nextName || nextName === collection.name) return;
 
     const response = await fetch("/api/api-studio/collections", {
@@ -552,13 +619,19 @@ export default function ApiStudioPage() {
     });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Rename failed" }));
+      const payload = await response
+        .json()
+        .catch(() => ({ error: "Rename failed" }));
       window.alert(payload.error || "Rename failed");
       return;
     }
 
     const payload = await response.json();
-    setCollections((prev) => prev.map((item) => (item.id === collection.id ? payload.collection : item)));
+    setCollections((prev) =>
+      prev.map((item) =>
+        item.id === collection.id ? payload.collection : item
+      )
+    );
   }
 
   async function deleteCollection(collection: ApiCollection) {
@@ -569,14 +642,18 @@ export default function ApiStudioPage() {
     if (!confirmed) return;
 
     const response = await fetch(
-      `/api/api-studio/collections?id=${encodeURIComponent(collection.id)}&org_id=${encodeURIComponent(org.id)}`,
+      `/api/api-studio/collections?id=${encodeURIComponent(
+        collection.id
+      )}&org_id=${encodeURIComponent(org.id)}`,
       {
         method: "DELETE",
       }
     );
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Delete failed" }));
+      const payload = await response
+        .json()
+        .catch(() => ({ error: "Delete failed" }));
       window.alert(payload.error || "Delete failed");
       return;
     }
@@ -590,7 +667,9 @@ export default function ApiStudioPage() {
     if (selectedCollectionId === collection.id) {
       setSelectedCollectionId((current) => {
         if (current !== collection.id) return current;
-        const remaining = collections.filter((item) => item.id !== collection.id);
+        const remaining = collections.filter(
+          (item) => item.id !== collection.id
+        );
         return remaining.length > 0 ? remaining[0].id : null;
       });
       setRequests([]);
@@ -616,13 +695,17 @@ export default function ApiStudioPage() {
     });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Rename failed" }));
+      const payload = await response
+        .json()
+        .catch(() => ({ error: "Rename failed" }));
       window.alert(payload.error || "Rename failed");
       return;
     }
 
     const payload = await response.json();
-    setRequests((prev) => prev.map((item) => (item.id === request.id ? payload.request : item)));
+    setRequests((prev) =>
+      prev.map((item) => (item.id === request.id ? payload.request : item))
+    );
     if (selectedRequestId === request.id) {
       setEditor((prev) => ({ ...prev, name: payload.request.name }));
       setIsDirty(false);
@@ -632,18 +715,24 @@ export default function ApiStudioPage() {
 
   async function deleteRequest(request: ApiRequest) {
     if (!org || !canEdit) return;
-    const confirmed = window.confirm(`Delete request "${request.name}"? This cannot be undone.`);
+    const confirmed = window.confirm(
+      `Delete request "${request.name}"? This cannot be undone.`
+    );
     if (!confirmed) return;
 
     const response = await fetch(
-      `/api/api-studio/requests?id=${encodeURIComponent(request.id)}&org_id=${encodeURIComponent(org.id)}`,
+      `/api/api-studio/requests?id=${encodeURIComponent(
+        request.id
+      )}&org_id=${encodeURIComponent(org.id)}`,
       {
         method: "DELETE",
       }
     );
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Delete failed" }));
+      const payload = await response
+        .json()
+        .catch(() => ({ error: "Delete failed" }));
       window.alert(payload.error || "Delete failed");
       return;
     }
@@ -668,7 +757,12 @@ export default function ApiStudioPage() {
     const response = await fetch("/api/api-studio/environments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgId: org.id, name, variables: {}, isShared: true }),
+      body: JSON.stringify({
+        orgId: org.id,
+        name,
+        variables: {},
+        isShared: true,
+      }),
     });
 
     if (!response.ok) return;
@@ -717,13 +811,19 @@ export default function ApiStudioPage() {
 
     if (!response.ok) {
       setSaveState("error");
-      const payload = await response.json().catch(() => ({ error: "Save failed" }));
+      const payload = await response
+        .json()
+        .catch(() => ({ error: "Save failed" }));
       window.alert(payload.error || "Save failed");
       return;
     }
 
     const payload = await response.json();
-    setRequests((prev) => prev.map((item) => (item.id === payload.request.id ? payload.request : item)));
+    setRequests((prev) =>
+      prev.map((item) =>
+        item.id === payload.request.id ? payload.request : item
+      )
+    );
     setSaveState("saved");
     setIsDirty(false);
   }
@@ -745,15 +845,21 @@ export default function ApiStudioPage() {
 
     const resolvedHeaders: Record<string, string> = {};
     for (const [key, value] of Object.entries(toRecord(editor.headersRows))) {
-      resolvedHeaders[interpolateTemplate(key, variables)] = interpolateTemplate(value, variables);
+      resolvedHeaders[interpolateTemplate(key, variables)] =
+        interpolateTemplate(value, variables);
     }
 
     if (editor.authType === "bearer" && editor.authToken.trim()) {
-      resolvedHeaders.Authorization = `Bearer ${interpolateTemplate(editor.authToken, variables)}`;
+      resolvedHeaders.Authorization = `Bearer ${interpolateTemplate(
+        editor.authToken,
+        variables
+      )}`;
     }
 
     const bodyText = interpolateTemplate(editor.bodyText, variables);
-    const resolvedBody = bodyText.trim() ? safeJsonParse(bodyText, bodyText) : undefined;
+    const resolvedBody = bodyText.trim()
+      ? safeJsonParse(bodyText, bodyText)
+      : undefined;
 
     setRunning(true);
     setResponseView(null);
@@ -773,7 +879,10 @@ export default function ApiStudioPage() {
 
       const payload = await response.json();
       if (!response.ok) {
-        setResponseView({ error: payload.error || "Request failed", status: response.status });
+        setResponseView({
+          error: payload.error || "Request failed",
+          status: response.status,
+        });
       } else {
         setResponseView({
           status: payload.status,
@@ -829,7 +938,9 @@ export default function ApiStudioPage() {
     });
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Import failed" }));
+      const payload = await response
+        .json()
+        .catch(() => ({ error: "Import failed" }));
       window.alert(payload.error || "Import failed");
       return;
     }
@@ -848,9 +959,17 @@ export default function ApiStudioPage() {
     }
 
     if (typeof payload?.importedRequests === "number") {
-      const total = typeof payload?.totalRequests === "number" ? payload.totalRequests : payload.importedRequests;
-      const failed = typeof payload?.failedRequests === "number" ? payload.failedRequests : Math.max(total - payload.importedRequests, 0);
-      const summary = `Imported ${payload.importedRequests}/${total} requests${failed > 0 ? ` (${failed} failed)` : ""}.`;
+      const total =
+        typeof payload?.totalRequests === "number"
+          ? payload.totalRequests
+          : payload.importedRequests;
+      const failed =
+        typeof payload?.failedRequests === "number"
+          ? payload.failedRequests
+          : Math.max(total - payload.importedRequests, 0);
+      const summary = `Imported ${payload.importedRequests}/${total} requests${
+        failed > 0 ? ` (${failed} failed)` : ""
+      }.`;
       window.alert(summary);
     }
   }
@@ -860,12 +979,20 @@ export default function ApiStudioPage() {
     if (saveState !== "idle") setSaveState("idle");
   }
 
-  function updateEditorField<K extends keyof typeof editor>(key: K, value: (typeof editor)[K]) {
+  function updateEditorField<K extends keyof typeof editor>(
+    key: K,
+    value: (typeof editor)[K]
+  ) {
     setEditor((prev) => ({ ...prev, [key]: value }));
     markDirty();
   }
 
-  function updateRows(type: "paramsRows" | "headersRows", index: number, field: keyof KvRow, value: string | boolean) {
+  function updateRows(
+    type: "paramsRows" | "headersRows",
+    index: number,
+    field: keyof KvRow,
+    value: string | boolean
+  ) {
     setEditor((prev) => {
       const rows = [...prev[type]];
       const row = { ...rows[index], [field]: value } as KvRow;
@@ -907,13 +1034,32 @@ export default function ApiStudioPage() {
   ];
 
   const railItems: Array<{
-    id: "collections" | "environments" | "history" | "apis" | "mock-servers" | "specs" | "monitors" | "flows" | "insights";
+    id:
+      | "collections"
+      | "environments"
+      | "history"
+      | "apis"
+      | "mock-servers"
+      | "specs"
+      | "monitors"
+      | "flows"
+      | "insights";
     label: string;
     icon: React.ReactNode;
     enabled?: boolean;
   }> = [
-    { id: "collections", label: "Collections", icon: <Folder size={16} />, enabled: true },
-    { id: "environments", label: "Environments", icon: <FlaskConical size={16} />, enabled: true },
+    {
+      id: "collections",
+      label: "Collections",
+      icon: <Folder size={16} />,
+      enabled: true,
+    },
+    {
+      id: "environments",
+      label: "Environments",
+      icon: <FlaskConical size={16} />,
+      enabled: true,
+    },
     { id: "history", label: "History", icon: <Clock3 size={16} /> },
     { id: "apis", label: "APIs", icon: <Box size={16} /> },
     { id: "mock-servers", label: "Mock servers", icon: <Monitor size={16} /> },
@@ -963,16 +1109,30 @@ export default function ApiStudioPage() {
               <input
                 value={sidebarQuery}
                 onChange={(event) => setSidebarQuery(event.target.value)}
-                placeholder={railSection === "environments" ? "Search environments" : "Search collections"}
+                placeholder={
+                  railSection === "environments"
+                    ? "Search environments"
+                    : "Search collections"
+                }
                 className="w-full bg-transparent outline-none text-[12px] text-primary"
               />
             </div>
             {railSection === "collections" ? (
-              <Button size="sm" variant="ghost" icon={<Plus size={12} />} onClick={createCollection}>
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<Plus size={12} />}
+                onClick={createCollection}
+              >
                 New
               </Button>
             ) : (
-              <Button size="sm" variant="ghost" icon={<Plus size={12} />} onClick={createEnvironment}>
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<Plus size={12} />}
+                onClick={createEnvironment}
+              >
                 New
               </Button>
             )}
@@ -982,12 +1142,24 @@ export default function ApiStudioPage() {
             {railSection === "collections" && (
               <>
                 <div className="flex items-center justify-between px-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted">Collections</p>
+                  <p className="text-[11px] uppercase tracking-wide text-muted">
+                    Collections
+                  </p>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" icon={<Upload size={11} />} onClick={() => setImportOpen(true)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Upload size={11} />}
+                      onClick={() => setImportOpen(true)}
+                    >
                       Import
                     </Button>
-                    <Button variant="ghost" size="sm" icon={<Plus size={11} />} onClick={createRequest}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Plus size={11} />}
+                      onClick={createRequest}
+                    >
                       Request
                     </Button>
                   </div>
@@ -995,9 +1167,14 @@ export default function ApiStudioPage() {
 
                 <div className="space-y-1">
                   {filteredCollections.map((collection) => {
-                    const isSelectedCollection = selectedCollectionId === collection.id;
-                    const isCollapsed = Boolean(collapsedCollectionIds[collection.id]);
-                    const visibleRequests = isSelectedCollection ? filteredRequests : [];
+                    const isSelectedCollection =
+                      selectedCollectionId === collection.id;
+                    const isCollapsed = Boolean(
+                      collapsedCollectionIds[collection.id]
+                    );
+                    const visibleRequests = isSelectedCollection
+                      ? filteredRequests
+                      : [];
 
                     return (
                       <div key={collection.id} className="rounded-md">
@@ -1009,7 +1186,10 @@ export default function ApiStudioPage() {
                           }`}
                           onClick={() => {
                             setSelectedCollectionId(collection.id);
-                            setCollapsedCollectionIds((prev) => ({ ...prev, [collection.id]: false }));
+                            setCollapsedCollectionIds((prev) => ({
+                              ...prev,
+                              [collection.id]: false,
+                            }));
                             lastLoadedRequestIdRef.current = null;
                           }}
                         >
@@ -1029,10 +1209,16 @@ export default function ApiStudioPage() {
                               }
                             }}
                           >
-                            {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                            {isCollapsed ? (
+                              <ChevronRight size={13} />
+                            ) : (
+                              <ChevronDown size={13} />
+                            )}
                           </span>
                           <Folder size={13} />
-                          <span className="text-[12px] truncate">{collection.name}</span>
+                          <span className="text-[12px] truncate">
+                            {collection.name}
+                          </span>
                           {canEdit ? (
                             <span className="ml-auto flex items-center gap-1">
                               <span
@@ -1044,7 +1230,10 @@ export default function ApiStudioPage() {
                                   void renameCollection(collection);
                                 }}
                                 onKeyDown={(event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
+                                  if (
+                                    event.key === "Enter" ||
+                                    event.key === " "
+                                  ) {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     void renameCollection(collection);
@@ -1062,7 +1251,10 @@ export default function ApiStudioPage() {
                                   void deleteCollection(collection);
                                 }}
                                 onKeyDown={(event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
+                                  if (
+                                    event.key === "Enter" ||
+                                    event.key === " "
+                                  ) {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     void deleteCollection(collection);
@@ -1078,10 +1270,13 @@ export default function ApiStudioPage() {
                         {isSelectedCollection && !isCollapsed && (
                           <div className="pl-7 pr-1 py-1 space-y-1">
                             {visibleRequests.length === 0 ? (
-                              <p className="text-[11px] text-muted px-2 py-1">No requests</p>
+                              <p className="text-[11px] text-muted px-2 py-1">
+                                No requests
+                              </p>
                             ) : (
                               visibleRequests.map((request) => {
-                                const isSelectedRequest = selectedRequestId === request.id;
+                                const isSelectedRequest =
+                                  selectedRequestId === request.id;
                                 return (
                                   <button
                                     key={request.id}
@@ -1096,10 +1291,16 @@ export default function ApiStudioPage() {
                                     }}
                                   >
                                     <div className="flex items-center gap-1.5">
-                                      <span className={`text-[10px] font-semibold ${getMethodColorClass(request.method)}`}>
+                                      <span
+                                        className={`text-[10px] font-semibold ${getMethodColorClass(
+                                          request.method
+                                        )}`}
+                                      >
                                         {request.method}
                                       </span>
-                                      <span className="text-[12px] truncate">{request.name}</span>
+                                      <span className="text-[12px] truncate">
+                                        {request.name}
+                                      </span>
                                       {canEdit ? (
                                         <span className="ml-auto flex items-center gap-1">
                                           <span
@@ -1111,7 +1312,10 @@ export default function ApiStudioPage() {
                                               void renameRequest(request);
                                             }}
                                             onKeyDown={(event) => {
-                                              if (event.key === "Enter" || event.key === " ") {
+                                              if (
+                                                event.key === "Enter" ||
+                                                event.key === " "
+                                              ) {
                                                 event.preventDefault();
                                                 event.stopPropagation();
                                                 void renameRequest(request);
@@ -1129,7 +1333,10 @@ export default function ApiStudioPage() {
                                               void deleteRequest(request);
                                             }}
                                             onKeyDown={(event) => {
-                                              if (event.key === "Enter" || event.key === " ") {
+                                              if (
+                                                event.key === "Enter" ||
+                                                event.key === " "
+                                              ) {
                                                 event.preventDefault();
                                                 event.stopPropagation();
                                                 void deleteRequest(request);
@@ -1159,7 +1366,9 @@ export default function ApiStudioPage() {
                 {environments
                   .filter((environment) => {
                     if (!sidebarQuery.trim()) return true;
-                    return environment.name.toLowerCase().includes(sidebarQuery.trim().toLowerCase());
+                    return environment.name
+                      .toLowerCase()
+                      .includes(sidebarQuery.trim().toLowerCase());
                   })
                   .map((environment) => (
                     <button
@@ -1171,22 +1380,32 @@ export default function ApiStudioPage() {
                       }`}
                       onClick={() => setSelectedEnvironmentId(environment.id)}
                     >
-                      <p className="text-[12px] font-medium truncate">{environment.name}</p>
-                      <p className="text-[10px] text-muted">{Object.keys(environment.variables || {}).length} variables</p>
+                      <p className="text-[12px] font-medium truncate">
+                        {environment.name}
+                      </p>
+                      <p className="text-[10px] text-muted">
+                        {Object.keys(environment.variables || {}).length}{" "}
+                        variables
+                      </p>
                     </button>
                   ))}
               </div>
             )}
 
-            {railSection !== "collections" && railSection !== "environments" && (
-              <div className="rounded-md border border-subtle bg-surface-2 p-3 text-[12px] text-muted">
-                This section is coming next. Use Collections to create and run requests.
-              </div>
-            )}
+            {railSection !== "collections" &&
+              railSection !== "environments" && (
+                <div className="rounded-md border border-subtle bg-surface-2 p-3 text-[12px] text-muted">
+                  This section is coming next. Use Collections to create and run
+                  requests.
+                </div>
+              )}
           </div>
 
           <div className="border-t border-subtle p-2">
-            <Link href="/dashboard/settings" className="block text-[11px] text-amber-400 hover:text-amber-300 px-1">
+            <Link
+              href="/dashboard/settings"
+              className="block text-[11px] text-amber-400 hover:text-amber-300 px-1"
+            >
               Edit save shortcut in Settings
             </Link>
           </div>
@@ -1202,7 +1421,9 @@ export default function ApiStudioPage() {
               <div className="rounded-lg border border-subtle bg-surface p-3 flex items-center gap-2">
                 <select
                   value={editor.method}
-                  onChange={(event) => updateEditorField("method", event.target.value)}
+                  onChange={(event) =>
+                    updateEditorField("method", event.target.value)
+                  }
                   className={`h-9 px-3 rounded-md border bg-surface-2 border-subtle text-[12px] font-semibold ${getMethodColorClass(
                     editor.method
                   )}`}
@@ -1215,11 +1436,19 @@ export default function ApiStudioPage() {
                 </select>
                 <Input
                   value={editor.url}
-                  onChange={(event) => updateEditorField("url", event.target.value)}
+                  onChange={(event) =>
+                    updateEditorField("url", event.target.value)
+                  }
                   placeholder="https://api.example.com/v1/users"
                   className="font-mono"
                 />
-                <Button variant="primary" size="sm" loading={running} icon={<Play size={12} />} onClick={runRequest}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={running}
+                  icon={<Play size={12} />}
+                  onClick={runRequest}
+                >
                   Send
                 </Button>
               </div>
@@ -1229,7 +1458,9 @@ export default function ApiStudioPage() {
                   <Input
                     label="Request Name"
                     value={editor.name}
-                    onChange={(event) => updateEditorField("name", event.target.value)}
+                    onChange={(event) =>
+                      updateEditorField("name", event.target.value)
+                    }
                     className="w-[320px]"
                   />
 
@@ -1259,7 +1490,9 @@ export default function ApiStudioPage() {
                     >
                       {tab.label}
                       {typeof tab.count === "number" ? (
-                        <span className="ml-1 text-[11px] text-green-400">({tab.count})</span>
+                        <span className="ml-1 text-[11px] text-green-400">
+                          ({tab.count})
+                        </span>
                       ) : null}
                     </button>
                   ))}
@@ -1271,20 +1504,40 @@ export default function ApiStudioPage() {
                       <table className="w-full text-[12px]">
                         <thead className="bg-surface-2 text-muted">
                           <tr>
-                            <th className="w-12 px-2 py-2 border-b border-r border-subtle text-left">On</th>
-                            <th className="px-2 py-2 border-b border-r border-subtle text-left">Key</th>
-                            <th className="px-2 py-2 border-b border-r border-subtle text-left">Value</th>
-                            <th className="px-2 py-2 border-b border-subtle text-left">Description</th>
+                            <th className="w-12 px-2 py-2 border-b border-r border-subtle text-left">
+                              On
+                            </th>
+                            <th className="px-2 py-2 border-b border-r border-subtle text-left">
+                              Key
+                            </th>
+                            <th className="px-2 py-2 border-b border-r border-subtle text-left">
+                              Value
+                            </th>
+                            <th className="px-2 py-2 border-b border-subtle text-left">
+                              Description
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {editor.paramsRows.map((row, index) => (
-                            <tr key={row.id} className="border-b border-subtle/60">
+                            <tr
+                              key={row.id}
+                              className="border-b border-subtle/60"
+                            >
                               <td className="px-2 py-1.5 border-r border-subtle">
                                 <button
-                                  onClick={() => updateRows("paramsRows", index, "enabled", !row.enabled)}
+                                  onClick={() =>
+                                    updateRows(
+                                      "paramsRows",
+                                      index,
+                                      "enabled",
+                                      !row.enabled
+                                    )
+                                  }
                                   className={`h-5 w-5 rounded border inline-flex items-center justify-center ${
-                                    row.enabled ? "border-amber-400 bg-amber-500/15 text-amber-300" : "border-subtle text-transparent"
+                                    row.enabled
+                                      ? "border-amber-400 bg-amber-500/15 text-amber-300"
+                                      : "border-subtle text-transparent"
                                   }`}
                                 >
                                   <Check size={12} />
@@ -1294,7 +1547,14 @@ export default function ApiStudioPage() {
                                 <input
                                   className="w-full bg-transparent outline-none"
                                   value={row.key}
-                                  onChange={(e) => updateRows("paramsRows", index, "key", e.target.value)}
+                                  onChange={(e) =>
+                                    updateRows(
+                                      "paramsRows",
+                                      index,
+                                      "key",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="key"
                                 />
                               </td>
@@ -1302,7 +1562,14 @@ export default function ApiStudioPage() {
                                 <input
                                   className="w-full bg-transparent outline-none"
                                   value={row.value}
-                                  onChange={(e) => updateRows("paramsRows", index, "value", e.target.value)}
+                                  onChange={(e) =>
+                                    updateRows(
+                                      "paramsRows",
+                                      index,
+                                      "value",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="value"
                                 />
                               </td>
@@ -1310,7 +1577,14 @@ export default function ApiStudioPage() {
                                 <input
                                   className="w-full bg-transparent outline-none"
                                   value={row.description}
-                                  onChange={(e) => updateRows("paramsRows", index, "description", e.target.value)}
+                                  onChange={(e) =>
+                                    updateRows(
+                                      "paramsRows",
+                                      index,
+                                      "description",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="description"
                                 />
                               </td>
@@ -1326,20 +1600,40 @@ export default function ApiStudioPage() {
                       <table className="w-full text-[12px]">
                         <thead className="bg-surface-2 text-muted">
                           <tr>
-                            <th className="w-12 px-2 py-2 border-b border-r border-subtle text-left">On</th>
-                            <th className="px-2 py-2 border-b border-r border-subtle text-left">Key</th>
-                            <th className="px-2 py-2 border-b border-r border-subtle text-left">Value</th>
-                            <th className="px-2 py-2 border-b border-subtle text-left">Description</th>
+                            <th className="w-12 px-2 py-2 border-b border-r border-subtle text-left">
+                              On
+                            </th>
+                            <th className="px-2 py-2 border-b border-r border-subtle text-left">
+                              Key
+                            </th>
+                            <th className="px-2 py-2 border-b border-r border-subtle text-left">
+                              Value
+                            </th>
+                            <th className="px-2 py-2 border-b border-subtle text-left">
+                              Description
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {editor.headersRows.map((row, index) => (
-                            <tr key={row.id} className="border-b border-subtle/60">
+                            <tr
+                              key={row.id}
+                              className="border-b border-subtle/60"
+                            >
                               <td className="px-2 py-1.5 border-r border-subtle">
                                 <button
-                                  onClick={() => updateRows("headersRows", index, "enabled", !row.enabled)}
+                                  onClick={() =>
+                                    updateRows(
+                                      "headersRows",
+                                      index,
+                                      "enabled",
+                                      !row.enabled
+                                    )
+                                  }
                                   className={`h-5 w-5 rounded border inline-flex items-center justify-center ${
-                                    row.enabled ? "border-amber-400 bg-amber-500/15 text-amber-300" : "border-subtle text-transparent"
+                                    row.enabled
+                                      ? "border-amber-400 bg-amber-500/15 text-amber-300"
+                                      : "border-subtle text-transparent"
                                   }`}
                                 >
                                   <Check size={12} />
@@ -1349,7 +1643,14 @@ export default function ApiStudioPage() {
                                 <input
                                   className="w-full bg-transparent outline-none"
                                   value={row.key}
-                                  onChange={(e) => updateRows("headersRows", index, "key", e.target.value)}
+                                  onChange={(e) =>
+                                    updateRows(
+                                      "headersRows",
+                                      index,
+                                      "key",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="key"
                                 />
                               </td>
@@ -1357,7 +1658,14 @@ export default function ApiStudioPage() {
                                 <input
                                   className="w-full bg-transparent outline-none"
                                   value={row.value}
-                                  onChange={(e) => updateRows("headersRows", index, "value", e.target.value)}
+                                  onChange={(e) =>
+                                    updateRows(
+                                      "headersRows",
+                                      index,
+                                      "value",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="value"
                                 />
                               </td>
@@ -1365,7 +1673,14 @@ export default function ApiStudioPage() {
                                 <input
                                   className="w-full bg-transparent outline-none"
                                   value={row.description}
-                                  onChange={(e) => updateRows("headersRows", index, "description", e.target.value)}
+                                  onChange={(e) =>
+                                    updateRows(
+                                      "headersRows",
+                                      index,
+                                      "description",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder="description"
                                 />
                               </td>
@@ -1379,11 +1694,18 @@ export default function ApiStudioPage() {
                   {activeTab === "authorization" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[12px] text-muted mb-1 block">Auth Type</label>
+                        <label className="text-[12px] text-muted mb-1 block">
+                          Auth Type
+                        </label>
                         <select
                           className="h-10 w-full rounded-md border border-subtle bg-surface-2 px-3 text-[12px]"
                           value={editor.authType}
-                          onChange={(e) => updateEditorField("authType", e.target.value as AuthType)}
+                          onChange={(e) =>
+                            updateEditorField(
+                              "authType",
+                              e.target.value as AuthType
+                            )
+                          }
                         >
                           <option value="none">No Auth</option>
                           <option value="bearer">Bearer Token</option>
@@ -1394,7 +1716,9 @@ export default function ApiStudioPage() {
                         <Input
                           label="Token"
                           value={editor.authToken}
-                          onChange={(e) => updateEditorField("authToken", e.target.value)}
+                          onChange={(e) =>
+                            updateEditorField("authToken", e.target.value)
+                          }
                           placeholder="{{token}}"
                           className="font-mono"
                         />
@@ -1407,7 +1731,9 @@ export default function ApiStudioPage() {
                       label="Raw Body"
                       rows={14}
                       value={editor.bodyText}
-                      onChange={(e) => updateEditorField("bodyText", e.target.value)}
+                      onChange={(e) =>
+                        updateEditorField("bodyText", e.target.value)
+                      }
                       className="font-mono"
                       placeholder='{"name":"John"}'
                     />
@@ -1416,22 +1742,45 @@ export default function ApiStudioPage() {
                   {activeTab === "scripts" && (
                     <div className="space-y-3">
                       <div className="rounded-md border border-subtle bg-surface-2 p-3 space-y-2">
-                        <p className="text-[12px] font-semibold text-primary">Script helper</p>
+                        <p className="text-[12px] font-semibold text-primary">
+                          Script helper
+                        </p>
                         <p className="text-[11px] text-muted">
-                          Pre-request scripts run before request is sent. Tests scripts run after response is received.
+                          Pre-request scripts run before request is sent. Tests
+                          scripts run after response is received.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
                           <div className="rounded-md border border-subtle bg-surface px-2 py-1.5 text-secondary">
-                            Use <span className="font-mono text-primary">pm.environment.set</span> to store variables.
+                            Use{" "}
+                            <span className="font-mono text-primary">
+                              pm.environment.set
+                            </span>{" "}
+                            to store variables.
                           </div>
                           <div className="rounded-md border border-subtle bg-surface px-2 py-1.5 text-secondary">
-                            Use <span className="font-mono text-primary">{"{{name}}"}</span> variables in URL, headers, and body.
+                            Use{" "}
+                            <span className="font-mono text-primary">
+                              {"{{name}}"}
+                            </span>{" "}
+                            variables in URL, headers, and body.
                           </div>
                           <div className="rounded-md border border-subtle bg-surface px-2 py-1.5 text-secondary">
-                            Use <span className="font-mono text-primary">pm.response</span> only in Tests script.
+                            Use{" "}
+                            <span className="font-mono text-primary">
+                              pm.response
+                            </span>{" "}
+                            only in Tests script.
                           </div>
                           <div className="rounded-md border border-subtle bg-surface px-2 py-1.5 text-secondary">
-                            Use <span className="font-mono text-primary">pm.test</span> and <span className="font-mono text-primary">pm.expect</span> for assertions.
+                            Use{" "}
+                            <span className="font-mono text-primary">
+                              pm.test
+                            </span>{" "}
+                            and{" "}
+                            <span className="font-mono text-primary">
+                              pm.expect
+                            </span>{" "}
+                            for assertions.
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2 pt-1">
@@ -1440,7 +1789,12 @@ export default function ApiStudioPage() {
                               key={item.id}
                               type="button"
                               className="text-[11px] rounded-md border border-subtle bg-surface px-2 py-1.5 text-secondary hover:text-primary hover:border-amber-500/40"
-                              onClick={() => insertScriptSuggestion(item.appliesTo, item.snippet)}
+                              onClick={() =>
+                                insertScriptSuggestion(
+                                  item.appliesTo,
+                                  item.snippet
+                                )
+                              }
                               title={item.description}
                             >
                               Add: {item.title}
@@ -1453,7 +1807,9 @@ export default function ApiStudioPage() {
                         label="Pre-request Script"
                         rows={7}
                         value={editor.preRequestScript}
-                        onChange={(e) => updateEditorField("preRequestScript", e.target.value)}
+                        onChange={(e) =>
+                          updateEditorField("preRequestScript", e.target.value)
+                        }
                         className="font-mono"
                         placeholder="// pre request script"
                       />
@@ -1461,7 +1817,9 @@ export default function ApiStudioPage() {
                         label="Tests Script"
                         rows={7}
                         value={editor.testsScript}
-                        onChange={(e) => updateEditorField("testsScript", e.target.value)}
+                        onChange={(e) =>
+                          updateEditorField("testsScript", e.target.value)
+                        }
                         className="font-mono"
                         placeholder="// tests script"
                       />
@@ -1499,10 +1857,23 @@ export default function ApiStudioPage() {
 
                   {activeTab === "settings" && (
                     <div className="text-[12px] text-muted space-y-2">
-                      <p>Environment variables in all fields are supported with double braces.</p>
-                      <p className="font-mono text-secondary">Example: {"{{token}}"} or {"https://api.example.com/{{version}}"}</p>
                       <p>
-                        Edit save shortcut from <Link className="text-amber-400" href="/dashboard/settings">Settings</Link>.
+                        Environment variables in all fields are supported with
+                        double braces.
+                      </p>
+                      <p className="font-mono text-secondary">
+                        Example: {"{{token}}"} or{" "}
+                        {"https://api.example.com/{{version}}"}
+                      </p>
+                      <p>
+                        Edit save shortcut from{" "}
+                        <Link
+                          className="text-amber-400"
+                          href="/dashboard/settings"
+                        >
+                          Settings
+                        </Link>
+                        .
                       </p>
                     </div>
                   )}
@@ -1515,23 +1886,23 @@ export default function ApiStudioPage() {
                       saveState === "saving"
                         ? "text-amber-400"
                         : saveState === "saved"
-                          ? "text-green-400"
-                          : saveState === "error"
-                            ? "text-red-400"
-                            : isDirty
-                              ? "text-amber-300"
-                              : "text-muted"
+                        ? "text-green-400"
+                        : saveState === "error"
+                        ? "text-red-400"
+                        : isDirty
+                        ? "text-amber-300"
+                        : "text-muted"
                     }
                   >
                     {saveState === "saving"
                       ? "Saving..."
                       : saveState === "saved"
-                        ? "Saved"
-                        : saveState === "error"
-                          ? "Save failed"
-                          : isDirty
-                            ? "Unsaved changes"
-                            : "No changes"}
+                      ? "Saved"
+                      : saveState === "error"
+                      ? "Save failed"
+                      : isDirty
+                      ? "Unsaved changes"
+                      : "No changes"}
                   </span>
                 </div>
               </div>
@@ -1539,17 +1910,23 @@ export default function ApiStudioPage() {
               <div className="rounded-lg border border-subtle bg-surface p-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[12px] font-semibold">Response</p>
-                  {responseView?.status ? <Badge variant="success">{responseView.status}</Badge> : null}
+                  {responseView?.status ? (
+                    <Badge variant="success">{responseView.status}</Badge>
+                  ) : null}
                 </div>
 
                 {responseView?.error ? (
-                  <pre className="text-[11px] text-red-400 overflow-auto max-h-80">{responseView.error}</pre>
+                  <pre className="text-[11px] text-red-400 overflow-auto max-h-80">
+                    {responseView.error}
+                  </pre>
                 ) : responseView ? (
                   <pre className="text-[11px] text-secondary overflow-auto max-h-80">
                     {JSON.stringify(responseView.data, null, 2)}
                   </pre>
                 ) : (
-                  <p className="text-[11px] text-muted">Run request to view response</p>
+                  <p className="text-[11px] text-muted">
+                    Run request to view response
+                  </p>
                 )}
               </div>
             </div>
@@ -1559,11 +1936,19 @@ export default function ApiStudioPage() {
 
       {importOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setImportOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setImportOpen(false)}
+          />
           <div className="relative w-full max-w-2xl bg-surface border border-subtle rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-[14px] font-semibold text-primary">Import Postman Collection JSON</h3>
-              <button className="text-muted hover:text-primary" onClick={() => setImportOpen(false)}>
+              <h3 className="text-[14px] font-semibold text-primary">
+                Import Postman Collection JSON
+              </h3>
+              <button
+                className="text-muted hover:text-primary"
+                onClick={() => setImportOpen(false)}
+              >
                 <X size={14} />
               </button>
             </div>
@@ -1575,7 +1960,11 @@ export default function ApiStudioPage() {
               placeholder="Paste exported Postman collection JSON"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setImportOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImportOpen(false)}
+              >
                 Cancel
               </Button>
               <Button variant="primary" size="sm" onClick={handleImportPostman}>

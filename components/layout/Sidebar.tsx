@@ -63,7 +63,11 @@ export function Sidebar() {
         className="flex items-center gap-3 px-5 h-[52px] shrink-0"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
-        <BrandLogo iconSize={28} showText textClassName="text-[15px] font-bold tracking-[-0.03em]" />
+        <BrandLogo
+          iconSize={28}
+          showText
+          textClassName="text-[15px] font-bold tracking-[-0.03em]"
+        />
         <span
           className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded"
           style={{
@@ -142,12 +146,17 @@ export function Sidebar() {
                   size={15}
                   className={cn(
                     "shrink-0 transition-colors",
-                    active ? "text-amber-400" : "text-muted group-hover:text-primary"
+                    active
+                      ? "text-amber-400"
+                      : "text-muted group-hover:text-primary"
                   )}
                 />
                 {item.label}
                 {active && (
-                  <ChevronRight size={12} className="ml-auto text-amber-400/60" />
+                  <ChevronRight
+                    size={12}
+                    className="ml-auto text-amber-400/60"
+                  />
                 )}
               </Link>
             );
@@ -156,7 +165,10 @@ export function Sidebar() {
 
         {/* Admin section */}
         {isAdmin && (
-          <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+          <div
+            className="mt-4 pt-4"
+            style={{ borderTop: "1px solid var(--border)" }}
+          >
             <p
               className="text-[10px] font-semibold uppercase tracking-widest px-3 mb-1.5"
               style={{ color: "var(--text-faint)" }}
@@ -180,11 +192,18 @@ export function Sidebar() {
                     size={15}
                     className={cn(
                       "shrink-0 transition-colors",
-                      active ? "text-amber-400" : "text-muted group-hover:text-primary"
+                      active
+                        ? "text-amber-400"
+                        : "text-muted group-hover:text-primary"
                     )}
                   />
                   {item.label}
-                  {active && <ChevronRight size={12} className="ml-auto text-amber-400/60" />}
+                  {active && (
+                    <ChevronRight
+                      size={12}
+                      className="ml-auto text-amber-400/60"
+                    />
+                  )}
                 </Link>
               );
             })}
@@ -215,16 +234,23 @@ export function Sidebar() {
                 background: "var(--bg-overlay)",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(245,158,11,0.3)";
-                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(245,158,11,0.05)";
+                (e.currentTarget as HTMLAnchorElement).style.borderColor =
+                  "rgba(245,158,11,0.3)";
+                (e.currentTarget as HTMLAnchorElement).style.background =
+                  "rgba(245,158,11,0.05)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--bg-subtle)";
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-overlay)";
+                (e.currentTarget as HTMLAnchorElement).style.borderColor =
+                  "var(--bg-subtle)";
+                (e.currentTarget as HTMLAnchorElement).style.background =
+                  "var(--bg-overlay)";
               }}
             >
               <Database size={14} style={{ color: "var(--text-muted)" }} />
-              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+              <span
+                className="text-[11px]"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Database
               </span>
             </Link>
@@ -235,14 +261,19 @@ export function Sidebar() {
                 background: "var(--bg-overlay)",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "rgba(245,158,11,0.06)";
+                (e.currentTarget as HTMLAnchorElement).style.background =
+                  "rgba(245,158,11,0.06)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-overlay)";
+                (e.currentTarget as HTMLAnchorElement).style.background =
+                  "var(--bg-overlay)";
               }}
             >
               <HardDrive size={14} style={{ color: "var(--text-muted)" }} />
-              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+              <span
+                className="text-[11px]"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Storage
               </span>
             </Link>
@@ -273,14 +304,23 @@ export function Sidebar() {
               {getInitials(profile.full_name || "U")}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
+              <p
+                className="text-[12px] font-medium truncate"
+                style={{ color: "var(--text-primary)" }}
+              >
                 {profile.full_name || "User"}
               </p>
-              <p className="text-[10px] truncate" style={{ color: "var(--text-faint)" }}>
+              <p
+                className="text-[10px] truncate"
+                style={{ color: "var(--text-faint)" }}
+              >
                 Sign out
               </p>
             </div>
-            <LogOut size={13} className="text-faint group-hover:text-red-400 transition-colors shrink-0" />
+            <LogOut
+              size={13}
+              className="text-faint group-hover:text-red-400 transition-colors shrink-0"
+            />
           </div>
         )}
       </div>

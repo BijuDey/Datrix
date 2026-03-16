@@ -7,14 +7,14 @@ interface PostmanItem {
   request?: {
     method?: string;
     url?:
-      | string
-      | {
-          raw?: string;
-          protocol?: string;
-          host?: string[];
-          path?: string[];
-          query?: Array<{ key?: string; value?: string }>;
-        };
+    | string
+    | {
+      raw?: string;
+      protocol?: string;
+      host?: string[];
+      path?: string[];
+      query?: Array<{ key?: string; value?: string }>;
+    };
     header?: Array<{ key?: string; value?: string }>;
     body?: {
       mode?: string;
@@ -74,12 +74,12 @@ function parseUrl(url: string | PostmanUrlObject | undefined) {
   const path = Array.isArray(url.path) ? `/${url.path.filter(Boolean).join("/")}` : "";
   const query = Array.isArray(url.query)
     ? url.query
-        .filter((entry: { key?: string; value?: string }) => entry?.key)
-        .map(
-          (entry: { key?: string; value?: string }) =>
-            `${encodeURIComponent(String(entry.key))}=${encodeURIComponent(String(entry.value || ""))}`
-        )
-        .join("&")
+      .filter((entry: { key?: string; value?: string }) => entry?.key)
+      .map(
+        (entry: { key?: string; value?: string }) =>
+          `${encodeURIComponent(String(entry.key))}=${encodeURIComponent(String(entry.value || ""))}`
+      )
+      .join("&")
     : "";
 
   if (!host) return "";
