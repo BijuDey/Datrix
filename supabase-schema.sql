@@ -274,3 +274,249 @@ create policy "Users view their own invitations by email" on organization_invita
 drop policy if exists "Admins view org invitations" on organization_invitations;
 create policy "Admins view org invitations" on organization_invitations
   for all using (is_org_admin(org_id));
+
+-- ──────────────────────────────────────────────────
+-- 10. API Studio: Collections, Requests, Environments, Imports, Revisions
+-- ──────────────────────────────────────────────────
+alter table organizations
+  add column if not exists description text;
+
+create table if not exists api_collections (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references organizations(id) on delete cascade,
+  name text not null,
+  description text,
+  visibility text not null default 'org' check (visibility in ('org', 'private')),
+  is_imported boolean default false,
+  source text,
+  created_by uuid references profiles(id),
+  updated_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists api_requests (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references organizations(id) on delete cascade,
+  collection_id uuid references api_collections(id) on delete set null,
+  name text not null,
+  method text not null default 'GET' check (method in ('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS')),
+  url text not null,
+  headers jsonb default '{}'::jsonb,
+  query_params jsonb default '{}'::jsonb,
+  body_type text default 'none',
+  body jsonb,
+  pre_request_script text,
+  tests_script text,
+  last_run_at timestamptz,
+  last_response_status integer,
+  created_by uuid references profiles(id),
+  updated_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists api_environments (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references organizations(id) on delete cascade,
+  name text not null,
+  variables jsonb not null default '{}'::jsonb,
+  is_shared boolean default true,
+  created_by uuid references profiles(id),
+  updated_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(org_id, name)
+);
+
+create table if not exists api_request_revisions (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid references api_requests(id) on delete cascade,
+  org_id uuid references organizations(id) on delete cascade,
+  snapshot jsonb not null,
+  source text default 'autosave' check (source in ('autosave', 'manual', 'import')),
+  saved_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+create table if not exists api_import_jobs (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references organizations(id) on delete cascade,
+  collection_id uuid references api_collections(id) on delete set null,
+  source text not null default 'postman' check (source in ('postman')),
+  imported_by uuid references profiles(id),
+  status text default 'success' check (status in ('success', 'failed')),
+  imported_count integer default 0,
+  raw_meta jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_api_collections_org on api_collections(org_id);
+create index if not exists idx_api_requests_org_collection on api_requests(org_id, collection_id);
+create index if not exists idx_api_environments_org on api_environments(org_id);
+create index if not exists idx_api_request_revisions_request on api_request_revisions(request_id);
+
+-- ──────────────────────────────────────────────────
+-- 11. White-label support tables (additive, optional use)
+-- ──────────────────────────────────────────────────
+create table if not exists whitelabel_brands (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid unique references organizations(id) on delete cascade,
+  app_name text,
+  app_tagline text,
+  logo_url text,
+  favicon_url text,
+  support_email text,
+  created_by uuid references profiles(id),
+  updated_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists whitelabel_themes (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid unique references organizations(id) on delete cascade,
+  theme_mode text default 'dark' check (theme_mode in ('light', 'dark', 'system')),
+  primary_color text,
+  accent_color text,
+  surface_color text,
+  text_color text,
+  font_heading text,
+  font_body text,
+  custom_css text,
+  created_by uuid references profiles(id),
+  updated_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists whitelabel_domains (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references organizations(id) on delete cascade,
+  domain text not null unique,
+  status text default 'pending' check (status in ('pending', 'verified', 'failed')),
+  verification_token text,
+  verified_at timestamptz,
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+-- ──────────────────────────────────────────────────
+-- 12. Shared trigger for updated_at maintenance
+-- ──────────────────────────────────────────────────
+create or replace function set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_api_collections_updated_at on api_collections;
+create trigger trg_api_collections_updated_at
+before update on api_collections
+for each row execute procedure set_updated_at();
+
+drop trigger if exists trg_api_requests_updated_at on api_requests;
+create trigger trg_api_requests_updated_at
+before update on api_requests
+for each row execute procedure set_updated_at();
+
+drop trigger if exists trg_api_environments_updated_at on api_environments;
+create trigger trg_api_environments_updated_at
+before update on api_environments
+for each row execute procedure set_updated_at();
+
+drop trigger if exists trg_whitelabel_brands_updated_at on whitelabel_brands;
+create trigger trg_whitelabel_brands_updated_at
+before update on whitelabel_brands
+for each row execute procedure set_updated_at();
+
+drop trigger if exists trg_whitelabel_themes_updated_at on whitelabel_themes;
+create trigger trg_whitelabel_themes_updated_at
+before update on whitelabel_themes
+for each row execute procedure set_updated_at();
+
+-- ──────────────────────────────────────────────────
+-- 13. Enable RLS for new tables
+-- ──────────────────────────────────────────────────
+alter table api_collections enable row level security;
+alter table api_requests enable row level security;
+alter table api_environments enable row level security;
+alter table api_request_revisions enable row level security;
+alter table api_import_jobs enable row level security;
+alter table whitelabel_brands enable row level security;
+alter table whitelabel_themes enable row level security;
+alter table whitelabel_domains enable row level security;
+
+-- ──────────────────────────────────────────────────
+-- 14. RLS policies for API Studio tables
+-- ──────────────────────────────────────────────────
+drop policy if exists "Members view api collections" on api_collections;
+create policy "Members view api collections" on api_collections
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Editors manage api collections" on api_collections;
+create policy "Editors manage api collections" on api_collections
+  for all using (is_org_editor(org_id)) with check (is_org_editor(org_id));
+
+drop policy if exists "Members view api requests" on api_requests;
+create policy "Members view api requests" on api_requests
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Editors manage api requests" on api_requests;
+create policy "Editors manage api requests" on api_requests
+  for all using (is_org_editor(org_id)) with check (is_org_editor(org_id));
+
+drop policy if exists "Members view api environments" on api_environments;
+create policy "Members view api environments" on api_environments
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Editors manage api environments" on api_environments;
+create policy "Editors manage api environments" on api_environments
+  for all using (is_org_editor(org_id)) with check (is_org_editor(org_id));
+
+drop policy if exists "Members view api revisions" on api_request_revisions;
+create policy "Members view api revisions" on api_request_revisions
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Editors write api revisions" on api_request_revisions;
+create policy "Editors write api revisions" on api_request_revisions
+  for insert with check (is_org_editor(org_id));
+
+drop policy if exists "Members view import jobs" on api_import_jobs;
+create policy "Members view import jobs" on api_import_jobs
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Editors create import jobs" on api_import_jobs;
+create policy "Editors create import jobs" on api_import_jobs
+  for insert with check (is_org_editor(org_id));
+
+-- ──────────────────────────────────────────────────
+-- 15. RLS policies for white-label tables
+-- ──────────────────────────────────────────────────
+drop policy if exists "Members view whitelabel brands" on whitelabel_brands;
+create policy "Members view whitelabel brands" on whitelabel_brands
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Admins manage whitelabel brands" on whitelabel_brands;
+create policy "Admins manage whitelabel brands" on whitelabel_brands
+  for all using (is_org_admin(org_id)) with check (is_org_admin(org_id));
+
+drop policy if exists "Members view whitelabel themes" on whitelabel_themes;
+create policy "Members view whitelabel themes" on whitelabel_themes
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Admins manage whitelabel themes" on whitelabel_themes;
+create policy "Admins manage whitelabel themes" on whitelabel_themes
+  for all using (is_org_admin(org_id)) with check (is_org_admin(org_id));
+
+drop policy if exists "Members view whitelabel domains" on whitelabel_domains;
+create policy "Members view whitelabel domains" on whitelabel_domains
+  for select using (org_id in (select get_user_org_ids()));
+
+drop policy if exists "Admins manage whitelabel domains" on whitelabel_domains;
+create policy "Admins manage whitelabel domains" on whitelabel_domains
+  for all using (is_org_admin(org_id)) with check (is_org_admin(org_id));

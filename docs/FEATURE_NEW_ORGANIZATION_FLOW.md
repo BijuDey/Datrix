@@ -86,6 +86,7 @@ Response:
 Required entities and fields:
 
 - organizations
+
   - id
   - name
   - slug (unique)

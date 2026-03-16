@@ -3,21 +3,45 @@
 import { useEffect, useState } from "react";
 import { TopBar, PageHeader } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/Button";
+import { Input, Textarea } from "@/components/ui/Input";
 import { Building, Mail, CheckCircle2, XCircle, Settings, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils";
 import Link from "next/link";
+
+interface OrganizationRow {
+  id: string;
+  name: string;
+  slug: string;
+  created_at?: string;
+  role: "admin" | "editor" | "member";
+}
+
+interface InvitationRow {
+  id: string;
+  role: "admin" | "editor" | "member";
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  organizations?: { id: string; name: string; slug: string };
+  profiles?: { full_name?: string | null };
+}
 
 export default function OrganizationsPage() {
   const { user, org: currentOrg, switchOrg } = useAuth();
   
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [invitations, setInvitations] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<OrganizationRow[]>([]);
+  const [invitations, setInvitations] = useState<InvitationRow[]>([]);
   
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [orgModalOpen, setOrgModalOpen] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [newOrgSlug, setNewOrgSlug] = useState("");
+  const [newOrgDescription, setNewOrgDescription] = useState("");
+  const [createOrgError, setCreateOrgError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -35,9 +59,9 @@ export default function OrganizationsPage() {
 
     if (data) {
       // Map to flatter structure
-      const parsed = data.map((m: any) => ({
+      const parsed: OrganizationRow[] = data.map((m: { role: "admin" | "editor" | "member"; organizations: OrganizationRow | OrganizationRow[] | null }) => ({
         role: m.role,
-        ...(Array.isArray(m.organizations) ? m.organizations[0] : m.organizations)
+        ...(Array.isArray(m.organizations) ? m.organizations[0] : m.organizations || {})
       }));
       setOrganizations(parsed);
     }
@@ -50,7 +74,7 @@ export default function OrganizationsPage() {
       const res = await fetch("/api/organizations/invitations");
       if (res.ok) {
         const data = await res.json();
-        setInvitations(data.invitations || []);
+        setInvitations((data.invitations || []) as InvitationRow[]);
       }
     } catch (err) {
       console.error(err);
@@ -84,6 +108,48 @@ export default function OrganizationsPage() {
     }
   }
 
+  async function handleCreateOrganization() {
+    setCreateOrgError(null);
+    if (!newOrgName.trim()) {
+      setCreateOrgError("Organization name is required");
+      return;
+    }
+
+    setCreatingOrg(true);
+    try {
+      const res = await fetch("/api/organizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newOrgName,
+          slug: newOrgSlug,
+          description: newOrgDescription,
+        }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok) {
+        setCreateOrgError(payload.error || "Failed to create organization");
+        setCreatingOrg(false);
+        return;
+      }
+
+      setOrgModalOpen(false);
+      setNewOrgName("");
+      setNewOrgSlug("");
+      setNewOrgDescription("");
+
+      await loadOrganizations();
+      if (payload.organization?.id) {
+        await switchOrg(payload.organization.id);
+      }
+    } catch {
+      setCreateOrgError("Network error while creating organization");
+    } finally {
+      setCreatingOrg(false);
+    }
+  }
+
   return (
     <div className="min-h-screen pt-[52px]">
       <TopBar title="Organizations" description="Manage your workspaces and invitations" />
@@ -95,7 +161,7 @@ export default function OrganizationsPage() {
             title="Your Organizations" 
             description="Workspaces you are a member of"
           >
-            <Button variant="outline" size="sm" icon={<Plus size={13} />} onClick={() => alert('New org creation coming soon!')}>
+            <Button variant="outline" size="sm" icon={<Plus size={13} />} onClick={() => setOrgModalOpen(true)}>
               New Workspace
             </Button>
           </PageHeader>
@@ -212,6 +278,52 @@ export default function OrganizationsPage() {
         )}
 
       </div>
+
+      {orgModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setOrgModalOpen(false)} />
+          <div className="relative w-full max-w-lg rounded-2xl bg-surface border border-subtle p-5 space-y-4">
+            <h3 className="text-[15px] font-semibold text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Create Organization
+            </h3>
+
+            {createOrgError && (
+              <div className="text-[12px] text-red-400 border border-red-500/25 bg-red-500/10 rounded-md px-3 py-2">
+                {createOrgError}
+              </div>
+            )}
+
+            <Input
+              label="Organization Name"
+              placeholder="Acme Data Team"
+              value={newOrgName}
+              onChange={(e) => setNewOrgName(e.target.value)}
+            />
+            <Input
+              label="Slug (optional)"
+              placeholder="acme-data-team"
+              value={newOrgSlug}
+              onChange={(e) => setNewOrgSlug(e.target.value)}
+              hint="Leave empty to auto-generate from name"
+            />
+            <Textarea
+              label="Description (optional)"
+              rows={4}
+              value={newOrgDescription}
+              onChange={(e) => setNewOrgDescription(e.target.value)}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setOrgModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" loading={creatingOrg} onClick={handleCreateOrganization}>
+                Create
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

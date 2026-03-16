@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Building,
   Braces,
+  Workflow,
 } from "lucide-react";
 import { config } from "@/config/app";
 import { useAuth } from "@/lib/auth-context";
@@ -26,6 +27,7 @@ const navItems = [
   { label: "Storage", href: "/dashboard/storage", icon: HardDrive },
   { label: "Teams", href: "/dashboard/teams", icon: Users },
   { label: "Organizations", href: "/dashboard/organizations", icon: Building },
+  { label: "API Studio", href: "/dashboard/api-studio", icon: Workflow },
   { label: "JSON Viewer", href: "/dashboard/json-viewer", icon: Braces },
   { label: "Logs", href: "/dashboard/logs", icon: ScrollText },
 ];

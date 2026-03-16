@@ -9,7 +9,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
-type Tab = "profile" | "organization" | "password";
+type Tab = "profile" | "organization" | "password" | "api-studio";
+const SHORTCUT_STORAGE_KEY = "apiStudio.saveShortcut.v1";
 
 export default function SettingsPage() {
   const { user, profile, org, isAdmin, refreshAuth } = useAuth();
@@ -24,11 +25,43 @@ export default function SettingsPage() {
   // Password form
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // API Studio shortcut form
+  const [shortcutModifier, setShortcutModifier] = useState<"meta" | "ctrl" | "alt">("meta");
+  const [shortcutKey, setShortcutKey] = useState("s");
 
   useEffect(() => {
     if (profile?.full_name) setFullName(profile.full_name);
     if (org?.name) setOrgName(org.name);
   }, [profile, org]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const fallbackModifier = navigator.platform.toLowerCase().includes("mac") ? "meta" : "ctrl";
+    const raw = window.localStorage.getItem(SHORTCUT_STORAGE_KEY);
+
+    if (!raw) {
+      setShortcutModifier(fallbackModifier);
+      setShortcutKey("s");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { modifier?: string; key?: string };
+      const modifier = parsed.modifier;
+      const key = String(parsed.key || "s").toLowerCase();
+
+      if (modifier === "meta" || modifier === "ctrl" || modifier === "alt") {
+        setShortcutModifier(modifier);
+      } else {
+        setShortcutModifier(fallbackModifier);
+      }
+      setShortcutKey(key || "s");
+    } catch {
+      setShortcutModifier(fallbackModifier);
+      setShortcutKey("s");
+    }
+  }, []);
 
   function showResult(ok: boolean, msg: string) {
     setResult({ ok, msg });
@@ -66,14 +99,33 @@ export default function SettingsPage() {
     setSaving(false);
   }
 
+  function saveApiStudioShortcut() {
+    const key = shortcutKey.trim().toLowerCase();
+
+    if (!key || key.length !== 1) {
+      showResult(false, "Shortcut key must be a single character");
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        SHORTCUT_STORAGE_KEY,
+        JSON.stringify({ modifier: shortcutModifier, key })
+      );
+    }
+
+    showResult(true, "API Studio shortcut updated");
+  }
+
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "profile", label: "Profile", icon: User },
     { id: "organization", label: "Organization", icon: Building2 },
     { id: "password", label: "Security", icon: Lock },
+    { id: "api-studio", label: "API Studio", icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen pt-[52px]">
+    <div className="min-h-screen pt-13">
       <TopBar title="Settings" description="Manage your profile and organization" />
       <div className="p-6 max-w-2xl mx-auto">
         <PageHeader title="Settings" description="Configure your account and workspace" />
@@ -196,6 +248,46 @@ export default function SettingsPage() {
               />
               <Button variant="primary" size="sm" loading={saving} onClick={savePassword}>
                 Update password
+              </Button>
+            </div>
+          )}
+
+          {tab === "api-studio" && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-[14px] font-semibold text-primary mb-1">API Studio</h2>
+                <p className="text-[12px] text-muted">Configure request editor behavior and save shortcut</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[12px] font-medium text-secondary">Modifier</span>
+                  <select
+                    value={shortcutModifier}
+                    onChange={(e) => setShortcutModifier(e.target.value as "meta" | "ctrl" | "alt")}
+                    className="h-10 rounded-lg border border-default bg-surface-2 px-3 text-[13px] text-primary"
+                  >
+                    <option value="meta">Command (Mac)</option>
+                    <option value="ctrl">Control</option>
+                    <option value="alt">Alt</option>
+                  </select>
+                </label>
+
+                <Input
+                  label="Key"
+                  value={shortcutKey}
+                  maxLength={1}
+                  onChange={(e) => setShortcutKey(e.target.value.toLowerCase())}
+                  hint="Single character, for example S"
+                />
+              </div>
+
+              <div className="p-3 rounded-lg bg-surface-2 border border-default text-[12px] text-secondary">
+                Effective shortcut: <span className="text-amber-400 font-semibold">{shortcutModifier.toUpperCase()}+{shortcutKey.toUpperCase()}</span>
+              </div>
+
+              <Button variant="primary" size="sm" onClick={saveApiStudioShortcut}>
+                Save API Studio shortcut
               </Button>
             </div>
           )}
