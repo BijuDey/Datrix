@@ -25,6 +25,8 @@ interface OrganizationRow {
   role: "admin" | "editor" | "member";
 }
 
+type OrganizationPayload = Omit<OrganizationRow, "role">;
+
 interface InvitationRow {
   id: string;
   role: "admin" | "editor" | "member";
@@ -66,16 +68,21 @@ export default function OrganizationsPage() {
 
     if (data) {
       // Map to flatter structure
-      const parsed: OrganizationRow[] = data.map(
+      const parsed: OrganizationRow[] = data.flatMap(
         (m: {
           role: "admin" | "editor" | "member";
-          organizations: OrganizationRow | OrganizationRow[] | null;
-        }) => ({
-          role: m.role,
-          ...(Array.isArray(m.organizations)
+          organizations: OrganizationPayload | OrganizationPayload[] | null;
+        }) => {
+          const organization = Array.isArray(m.organizations)
             ? m.organizations[0]
-            : m.organizations || {}),
-        })
+            : m.organizations;
+
+          if (!organization?.id || !organization.name || !organization.slug) {
+            return [];
+          }
+
+          return [{ ...organization, role: m.role }];
+        }
       );
       setOrganizations(parsed);
     }
