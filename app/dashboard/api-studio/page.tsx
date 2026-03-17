@@ -108,6 +108,7 @@ type ApiStudioCacheSnapshot = {
   collections: ApiCollection[];
   environments: ApiEnvironment[];
   requests: ApiRequest[];
+  requestsByCollection?: Record<string, ApiRequest[]>;
   requestsCollectionId: string | null;
   selectedCollectionId: string | null;
   selectedRequestId: string | null;
@@ -564,6 +565,11 @@ export default function ApiStudioPage() {
   const [collections, setCollections] = useState<ApiCollection[]>([]);
   const [environments, setEnvironments] = useState<ApiEnvironment[]>([]);
   const [requests, setRequests] = useState<ApiRequest[]>([]);
+  const [requestsByCollection, setRequestsByCollection] = useState<
+    Record<string, ApiRequest[]>
+  >({});
+  const [requestsLoadingByCollection, setRequestsLoadingByCollection] =
+    useState<Record<string, boolean>>({});
   const [requestsCollectionId, setRequestsCollectionId] = useState<
     string | null
   >(null);
@@ -802,6 +808,7 @@ export default function ApiStudioPage() {
           setCollections(parsed.collections || []);
           setEnvironments(parsed.environments || []);
           setRequests(parsed.requests || []);
+          setRequestsByCollection(parsed.requestsByCollection || {});
           setRequestsCollectionId(parsed.requestsCollectionId || null);
           setSelectedCollectionId(parsed.selectedCollectionId || null);
           setSelectedRequestId(parsed.selectedRequestId || null);
@@ -855,6 +862,7 @@ export default function ApiStudioPage() {
       collections,
       environments,
       requests,
+      requestsByCollection,
       requestsCollectionId,
       selectedCollectionId,
       selectedRequestId,
@@ -873,6 +881,7 @@ export default function ApiStudioPage() {
     collections,
     environments,
     requests,
+    requestsByCollection,
     requestsCollectionId,
     selectedCollectionId,
     selectedRequestId,
@@ -889,12 +898,36 @@ export default function ApiStudioPage() {
       setRequestsLoading(false);
       return;
     }
-    if (requestsCollectionId === selectedCollectionId && requests.length > 0) {
+
+    const hasCachedRequests = Object.prototype.hasOwnProperty.call(
+      requestsByCollection,
+      selectedCollectionId
+    );
+    const cachedRequests: ApiRequest[] = hasCachedRequests
+      ? requestsByCollection[selectedCollectionId] || []
+      : [];
+
+    if (hasCachedRequests) {
+      setRequests(cachedRequests);
+      setRequestsCollectionId(selectedCollectionId);
+      setRequestsLoading(false);
+    }
+
+    if (
+      requestsCollectionId === selectedCollectionId &&
+      (requests.length > 0 || hasCachedRequests)
+    ) {
       return;
     }
     const shouldShowLoader = requestsCollectionId !== selectedCollectionId;
     void loadRequests(org.id, selectedCollectionId, shouldShowLoader);
-  }, [org, selectedCollectionId, requestsCollectionId, requests.length]);
+  }, [
+    org,
+    selectedCollectionId,
+    requestsCollectionId,
+    requests.length,
+    requestsByCollection,
+  ]);
 
   useEffect(() => {
     if (!selectedRequestId || !selectedRequest) return;
@@ -1029,6 +1062,10 @@ export default function ApiStudioPage() {
     showLoader = true
   ) {
     if (showLoader) setRequestsLoading(true);
+    setRequestsLoadingByCollection((prev) => ({
+      ...prev,
+      [collectionId]: true,
+    }));
     try {
       const response = await fetch(
         `/api/api-studio/requests?org_id=${orgId}&collection_id=${collectionId}`
@@ -1038,6 +1075,10 @@ export default function ApiStudioPage() {
       const rows = payload.requests || [];
       setRequests(rows);
       setRequestsCollectionId(collectionId);
+      setRequestsByCollection((prev) => ({
+        ...prev,
+        [collectionId]: rows,
+      }));
 
       if (rows.length === 0) {
         setSelectedRequestId(null);
@@ -1052,6 +1093,10 @@ export default function ApiStudioPage() {
       });
     } finally {
       if (showLoader) setRequestsLoading(false);
+      setRequestsLoadingByCollection((prev) => ({
+        ...prev,
+        [collectionId]: false,
+      }));
     }
   }
 
@@ -1419,6 +1464,51 @@ export default function ApiStudioPage() {
 
   saveRequestRef.current = saveCurrentRequest;
 
+  async function syncRuntimeEnvironmentVariables(runtimeEnvironment: unknown) {
+    if (!org || !selectedEnvironment) return;
+    if (!runtimeEnvironment || typeof runtimeEnvironment !== "object") return;
+
+    const nextVariables = Object.fromEntries(
+      Object.entries(runtimeEnvironment as Record<string, unknown>).map(
+        ([key, value]) => [key, value == null ? "" : String(value)]
+      )
+    );
+
+    const currentVariables = selectedEnvironment.variables || {};
+    const currentKeys = Object.keys(currentVariables);
+    const nextKeys = Object.keys(nextVariables);
+
+    const unchanged =
+      currentKeys.length === nextKeys.length &&
+      nextKeys.every((key) => currentVariables[key] === nextVariables[key]);
+
+    if (unchanged) return;
+
+    setEnvironments((prev) =>
+      prev.map((env) =>
+        env.id === selectedEnvironment.id
+          ? { ...env, variables: nextVariables }
+          : env
+      )
+    );
+
+    try {
+      await fetch("/api/api-studio/environments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedEnvironment.id,
+          orgId: org.id,
+          name: selectedEnvironment.name,
+          variables: nextVariables,
+          isShared: selectedEnvironment.is_shared,
+        }),
+      });
+    } catch {
+      // Keep local UI updated even if persistence fails temporarily.
+    }
+  }
+
   async function runRequest() {
     if (!org || !selectedRequestId) return;
 
@@ -1454,6 +1544,8 @@ export default function ApiStudioPage() {
       });
 
       const payload = await response.json();
+      await syncRuntimeEnvironmentVariables(payload?.variables?.environment);
+
       if (!response.ok) {
         setResponseView({
           error: payload.error || "Request failed",
@@ -1589,10 +1681,22 @@ export default function ApiStudioPage() {
   }
 
   function toggleCollectionCollapsed(collectionId: string) {
+    const currentlyCollapsed = Boolean(collapsedCollectionIds[collectionId]);
+    const nextCollapsed = !currentlyCollapsed;
+
     setCollapsedCollectionIds((prev) => ({
       ...prev,
-      [collectionId]: !prev[collectionId],
+      [collectionId]: nextCollapsed,
     }));
+
+    if (
+      currentlyCollapsed &&
+      org &&
+      !requestsByCollection[collectionId] &&
+      !requestsLoadingByCollection[collectionId]
+    ) {
+      void loadRequests(org.id, collectionId, false);
+    }
   }
 
   function toggleRequestFolderCollapsed(folderId: string) {
@@ -1866,9 +1970,23 @@ export default function ApiStudioPage() {
                       const isCollapsed = Boolean(
                         collapsedCollectionIds[collection.id]
                       );
-                      const visibleRequests = isSelectedCollection
-                        ? filteredRequests
-                        : [];
+                      const collectionRequests =
+                        requestsByCollection[collection.id] ||
+                        (isSelectedCollection ? requests : []);
+                      const visibleRequests = sidebarQuery.trim()
+                        ? collectionRequests.filter((request) => {
+                            const hay =
+                              `${request.name} ${request.url} ${request.method}`.toLowerCase();
+                            return hay.includes(
+                              sidebarQuery.trim().toLowerCase()
+                            );
+                          })
+                        : collectionRequests;
+                      const collectionRequestTree =
+                        buildRequestTree(visibleRequests);
+                      const isLoadingCollectionRequests = Boolean(
+                        requestsLoadingByCollection[collection.id]
+                      );
 
                       return (
                         <div key={collection.id} className="rounded-md">
@@ -1893,6 +2011,8 @@ export default function ApiStudioPage() {
                               className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-white/10"
                               onClick={(event) => {
                                 event.stopPropagation();
+                                setSelectedCollectionId(collection.id);
+                                lastLoadedRequestIdRef.current = null;
                                 toggleCollectionCollapsed(collection.id);
                               }}
                               onKeyDown={(event) => {
@@ -1902,6 +2022,8 @@ export default function ApiStudioPage() {
                                 ) {
                                   event.preventDefault();
                                   event.stopPropagation();
+                                  setSelectedCollectionId(collection.id);
+                                  lastLoadedRequestIdRef.current = null;
                                   toggleCollectionCollapsed(collection.id);
                                 }
                               }}
@@ -1964,9 +2086,9 @@ export default function ApiStudioPage() {
                             ) : null}
                           </button>
 
-                          {isSelectedCollection && !isCollapsed && (
+                          {!isCollapsed && (
                             <div className="pl-7 pr-1 py-1 space-y-1">
-                              {requestsLoading ? (
+                              {isLoadingCollectionRequests ? (
                                 <div className="space-y-2 py-1">
                                   {[...Array(3)].map((_, index) => (
                                     <div
@@ -1981,269 +2103,298 @@ export default function ApiStudioPage() {
                                 </p>
                               ) : (
                                 <>
-                                  {requestTree.requests.map((leaf) => {
-                                    const request = leaf.request;
-                                    const isSelectedRequest =
-                                      selectedRequestId === request.id;
-                                    return (
-                                      <button
-                                        key={request.id}
-                                        className={`w-full rounded-md px-2 py-1.5 text-left border transition-all ${
-                                          isSelectedRequest
-                                            ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
-                                            : "bg-transparent border-transparent text-secondary hover:text-primary hover:bg-white/4"
-                                        }`}
-                                        onClick={() => {
-                                          setSelectedRequestId(request.id);
-                                          lastLoadedRequestIdRef.current = null;
-                                        }}
-                                      >
-                                        <div className="flex items-center gap-1.5">
-                                          <span
-                                            className={`text-[10px] font-semibold ${getMethodColorClass(
-                                              request.method
-                                            )}`}
-                                          >
-                                            {request.method}
-                                          </span>
-                                          <span className="text-[12px] truncate">
-                                            {leaf.title}
-                                          </span>
-                                          {canEdit ? (
-                                            <span className="ml-auto flex items-center gap-1">
-                                              <span
-                                                role="button"
-                                                tabIndex={0}
-                                                className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-white/10 text-muted hover:text-primary"
-                                                onClick={(event) => {
-                                                  event.stopPropagation();
-                                                  void renameRequest(request);
-                                                }}
-                                                onKeyDown={(event) => {
-                                                  if (
-                                                    event.key === "Enter" ||
-                                                    event.key === " "
-                                                  ) {
-                                                    event.preventDefault();
+                                  {collectionRequestTree.requests.map(
+                                    (leaf) => {
+                                      const request = leaf.request;
+                                      const isSelectedRequest =
+                                        selectedRequestId === request.id;
+                                      return (
+                                        <button
+                                          key={request.id}
+                                          className={`w-full rounded-md px-2 py-1.5 text-left border transition-all ${
+                                            isSelectedRequest
+                                              ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
+                                              : "bg-transparent border-transparent text-secondary hover:text-primary hover:bg-white/4"
+                                          }`}
+                                          onClick={() => {
+                                            setSelectedCollectionId(
+                                              collection.id
+                                            );
+                                            setRequests(collectionRequests);
+                                            setRequestsCollectionId(
+                                              collection.id
+                                            );
+                                            setSelectedRequestId(request.id);
+                                            lastLoadedRequestIdRef.current =
+                                              null;
+                                          }}
+                                        >
+                                          <div className="flex items-center gap-1.5">
+                                            <span
+                                              className={`text-[10px] font-semibold ${getMethodColorClass(
+                                                request.method
+                                              )}`}
+                                            >
+                                              {request.method}
+                                            </span>
+                                            <span className="text-[12px] truncate">
+                                              {leaf.title}
+                                            </span>
+                                            {canEdit ? (
+                                              <span className="ml-auto flex items-center gap-1">
+                                                <span
+                                                  role="button"
+                                                  tabIndex={0}
+                                                  className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-white/10 text-muted hover:text-primary"
+                                                  onClick={(event) => {
                                                     event.stopPropagation();
                                                     void renameRequest(request);
-                                                  }
-                                                }}
-                                              >
-                                                <Pencil size={11} />
-                                              </span>
-                                              <span
-                                                role="button"
-                                                tabIndex={0}
-                                                className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-red-500/20 text-muted hover:text-red-300"
-                                                onClick={(event) => {
-                                                  event.stopPropagation();
-                                                  void deleteRequest(request);
-                                                }}
-                                                onKeyDown={(event) => {
-                                                  if (
-                                                    event.key === "Enter" ||
-                                                    event.key === " "
-                                                  ) {
-                                                    event.preventDefault();
+                                                  }}
+                                                  onKeyDown={(event) => {
+                                                    if (
+                                                      event.key === "Enter" ||
+                                                      event.key === " "
+                                                    ) {
+                                                      event.preventDefault();
+                                                      event.stopPropagation();
+                                                      void renameRequest(
+                                                        request
+                                                      );
+                                                    }
+                                                  }}
+                                                >
+                                                  <Pencil size={11} />
+                                                </span>
+                                                <span
+                                                  role="button"
+                                                  tabIndex={0}
+                                                  className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-red-500/20 text-muted hover:text-red-300"
+                                                  onClick={(event) => {
                                                     event.stopPropagation();
                                                     void deleteRequest(request);
-                                                  }
-                                                }}
-                                              >
-                                                <Trash2 size={11} />
+                                                  }}
+                                                  onKeyDown={(event) => {
+                                                    if (
+                                                      event.key === "Enter" ||
+                                                      event.key === " "
+                                                    ) {
+                                                      event.preventDefault();
+                                                      event.stopPropagation();
+                                                      void deleteRequest(
+                                                        request
+                                                      );
+                                                    }
+                                                  }}
+                                                >
+                                                  <Trash2 size={11} />
+                                                </span>
                                               </span>
-                                            </span>
-                                          ) : null}
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
+                                            ) : null}
+                                          </div>
+                                        </button>
+                                      );
+                                    }
+                                  )}
 
-                                  {requestTree.folders.map((folder) => {
-                                    const isFolderCollapsed = Boolean(
-                                      collapsedRequestFolderIds[folder.id]
-                                    );
-
-                                    function renderFolder(
-                                      node: RequestFolderNode,
-                                      depth: number
-                                    ): React.ReactNode {
-                                      const collapsed = Boolean(
-                                        collapsedRequestFolderIds[node.id]
+                                  {collectionRequestTree.folders.map(
+                                    (folder) => {
+                                      const isFolderCollapsed = Boolean(
+                                        collapsedRequestFolderIds[folder.id]
                                       );
 
-                                      return (
-                                        <div
-                                          key={node.id}
-                                          className="space-y-1"
-                                        >
-                                          <button
-                                            className="w-full rounded-md px-2 py-1.5 text-left border border-transparent text-secondary hover:text-primary hover:bg-white/4 flex items-center gap-1.5"
-                                            style={{
-                                              paddingLeft: `${
-                                                8 + depth * 14
-                                              }px`,
-                                            }}
-                                            onClick={() =>
-                                              toggleRequestFolderCollapsed(
-                                                node.id
-                                              )
-                                            }
+                                      function renderFolder(
+                                        node: RequestFolderNode,
+                                        depth: number
+                                      ): React.ReactNode {
+                                        const collapsed = Boolean(
+                                          collapsedRequestFolderIds[node.id]
+                                        );
+
+                                        return (
+                                          <div
+                                            key={node.id}
+                                            className="space-y-1"
                                           >
-                                            {collapsed ? (
-                                              <ChevronRight size={12} />
-                                            ) : (
-                                              <ChevronDown size={12} />
-                                            )}
-                                            <Folder size={12} />
-                                            <span className="text-[12px] truncate">
-                                              {node.name}
-                                            </span>
-                                          </button>
+                                            <button
+                                              className="w-full rounded-md px-2 py-1.5 text-left border border-transparent text-secondary hover:text-primary hover:bg-white/4 flex items-center gap-1.5"
+                                              style={{
+                                                paddingLeft: `${
+                                                  8 + depth * 14
+                                                }px`,
+                                              }}
+                                              onClick={() =>
+                                                toggleRequestFolderCollapsed(
+                                                  node.id
+                                                )
+                                              }
+                                            >
+                                              {collapsed ? (
+                                                <ChevronRight size={12} />
+                                              ) : (
+                                                <ChevronDown size={12} />
+                                              )}
+                                              <Folder size={12} />
+                                              <span className="text-[12px] truncate">
+                                                {node.name}
+                                              </span>
+                                            </button>
 
-                                          {!collapsed && (
-                                            <div className="space-y-1">
-                                              {node.requests.map((leaf) => {
-                                                const request = leaf.request;
-                                                const isSelectedRequest =
-                                                  selectedRequestId ===
-                                                  request.id;
+                                            {!collapsed && (
+                                              <div className="space-y-1">
+                                                {node.requests.map((leaf) => {
+                                                  const request = leaf.request;
+                                                  const isSelectedRequest =
+                                                    selectedRequestId ===
+                                                    request.id;
 
-                                                return (
-                                                  <button
-                                                    key={request.id}
-                                                    className={`w-full rounded-md px-2 py-1.5 text-left border transition-all ${
-                                                      isSelectedRequest
-                                                        ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
-                                                        : "bg-transparent border-transparent text-secondary hover:text-primary hover:bg-white/4"
-                                                    }`}
-                                                    style={{
-                                                      paddingLeft: `${
-                                                        22 + depth * 14
-                                                      }px`,
-                                                    }}
-                                                    onClick={() => {
-                                                      setSelectedRequestId(
-                                                        request.id
-                                                      );
-                                                      lastLoadedRequestIdRef.current =
-                                                        null;
-                                                    }}
-                                                  >
-                                                    <div className="flex items-center gap-1.5">
-                                                      <span
-                                                        className={`text-[10px] font-semibold ${getMethodColorClass(
-                                                          request.method
-                                                        )}`}
-                                                      >
-                                                        {request.method}
-                                                      </span>
-                                                      <span className="text-[12px] truncate">
-                                                        {leaf.title}
-                                                      </span>
-                                                      {canEdit ? (
-                                                        <span className="ml-auto flex items-center gap-1">
-                                                          <span
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-white/10 text-muted hover:text-primary"
-                                                            onClick={(
-                                                              event
-                                                            ) => {
-                                                              event.stopPropagation();
-                                                              void renameRequest(
-                                                                request
-                                                              );
-                                                            }}
-                                                            onKeyDown={(
-                                                              event
-                                                            ) => {
-                                                              if (
-                                                                event.key ===
-                                                                  "Enter" ||
-                                                                event.key ===
-                                                                  " "
-                                                              ) {
-                                                                event.preventDefault();
+                                                  return (
+                                                    <button
+                                                      key={request.id}
+                                                      className={`w-full rounded-md px-2 py-1.5 text-left border transition-all ${
+                                                        isSelectedRequest
+                                                          ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
+                                                          : "bg-transparent border-transparent text-secondary hover:text-primary hover:bg-white/4"
+                                                      }`}
+                                                      style={{
+                                                        paddingLeft: `${
+                                                          22 + depth * 14
+                                                        }px`,
+                                                      }}
+                                                      onClick={() => {
+                                                        setSelectedCollectionId(
+                                                          collection.id
+                                                        );
+                                                        setRequests(
+                                                          collectionRequests
+                                                        );
+                                                        setRequestsCollectionId(
+                                                          collection.id
+                                                        );
+                                                        setSelectedRequestId(
+                                                          request.id
+                                                        );
+                                                        lastLoadedRequestIdRef.current =
+                                                          null;
+                                                      }}
+                                                    >
+                                                      <div className="flex items-center gap-1.5">
+                                                        <span
+                                                          className={`text-[10px] font-semibold ${getMethodColorClass(
+                                                            request.method
+                                                          )}`}
+                                                        >
+                                                          {request.method}
+                                                        </span>
+                                                        <span className="text-[12px] truncate">
+                                                          {leaf.title}
+                                                        </span>
+                                                        {canEdit ? (
+                                                          <span className="ml-auto flex items-center gap-1">
+                                                            <span
+                                                              role="button"
+                                                              tabIndex={0}
+                                                              className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-white/10 text-muted hover:text-primary"
+                                                              onClick={(
+                                                                event
+                                                              ) => {
                                                                 event.stopPropagation();
                                                                 void renameRequest(
                                                                   request
                                                                 );
-                                                              }
-                                                            }}
-                                                          >
-                                                            <Pencil size={11} />
-                                                          </span>
-                                                          <span
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-red-500/20 text-muted hover:text-red-300"
-                                                            onClick={(
-                                                              event
-                                                            ) => {
-                                                              event.stopPropagation();
-                                                              void deleteRequest(
-                                                                request
-                                                              );
-                                                            }}
-                                                            onKeyDown={(
-                                                              event
-                                                            ) => {
-                                                              if (
-                                                                event.key ===
-                                                                  "Enter" ||
-                                                                event.key ===
-                                                                  " "
-                                                              ) {
-                                                                event.preventDefault();
+                                                              }}
+                                                              onKeyDown={(
+                                                                event
+                                                              ) => {
+                                                                if (
+                                                                  event.key ===
+                                                                    "Enter" ||
+                                                                  event.key ===
+                                                                    " "
+                                                                ) {
+                                                                  event.preventDefault();
+                                                                  event.stopPropagation();
+                                                                  void renameRequest(
+                                                                    request
+                                                                  );
+                                                                }
+                                                              }}
+                                                            >
+                                                              <Pencil
+                                                                size={11}
+                                                              />
+                                                            </span>
+                                                            <span
+                                                              role="button"
+                                                              tabIndex={0}
+                                                              className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-red-500/20 text-muted hover:text-red-300"
+                                                              onClick={(
+                                                                event
+                                                              ) => {
                                                                 event.stopPropagation();
                                                                 void deleteRequest(
                                                                   request
                                                                 );
-                                                              }
-                                                            }}
-                                                          >
-                                                            <Trash2 size={11} />
+                                                              }}
+                                                              onKeyDown={(
+                                                                event
+                                                              ) => {
+                                                                if (
+                                                                  event.key ===
+                                                                    "Enter" ||
+                                                                  event.key ===
+                                                                    " "
+                                                                ) {
+                                                                  event.preventDefault();
+                                                                  event.stopPropagation();
+                                                                  void deleteRequest(
+                                                                    request
+                                                                  );
+                                                                }
+                                                              }}
+                                                            >
+                                                              <Trash2
+                                                                size={11}
+                                                              />
+                                                            </span>
                                                           </span>
-                                                        </span>
-                                                      ) : null}
-                                                    </div>
-                                                  </button>
-                                                );
-                                              })}
+                                                        ) : null}
+                                                      </div>
+                                                    </button>
+                                                  );
+                                                })}
 
-                                              {node.folders.map((child) =>
-                                                renderFolder(child, depth + 1)
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
+                                                {node.folders.map((child) =>
+                                                  renderFolder(child, depth + 1)
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+
+                                      if (isFolderCollapsed) {
+                                        return (
+                                          <button
+                                            key={folder.id}
+                                            className="w-full rounded-md px-2 py-1.5 text-left border border-transparent text-secondary hover:text-primary hover:bg-white/4 flex items-center gap-1.5"
+                                            onClick={() =>
+                                              toggleRequestFolderCollapsed(
+                                                folder.id
+                                              )
+                                            }
+                                          >
+                                            <ChevronRight size={12} />
+                                            <Folder size={12} />
+                                            <span className="text-[12px] truncate">
+                                              {folder.name}
+                                            </span>
+                                          </button>
+                                        );
+                                      }
+
+                                      return renderFolder(folder, 0);
                                     }
-
-                                    if (isFolderCollapsed) {
-                                      return (
-                                        <button
-                                          key={folder.id}
-                                          className="w-full rounded-md px-2 py-1.5 text-left border border-transparent text-secondary hover:text-primary hover:bg-white/4 flex items-center gap-1.5"
-                                          onClick={() =>
-                                            toggleRequestFolderCollapsed(
-                                              folder.id
-                                            )
-                                          }
-                                        >
-                                          <ChevronRight size={12} />
-                                          <Folder size={12} />
-                                          <span className="text-[12px] truncate">
-                                            {folder.name}
-                                          </span>
-                                        </button>
-                                      );
-                                    }
-
-                                    return renderFolder(folder, 0);
-                                  })}
+                                  )}
                                 </>
                               )}
                             </div>

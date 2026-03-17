@@ -355,7 +355,11 @@ function runPostmanScript(params: {
     variables: {
       get: (name: string) => resolver.lookup(String(name || "")),
       set: (name: string, value: unknown) => {
-        stores.variables[String(name)] = toValueString(value);
+        const key = String(name);
+        const normalized = toValueString(value);
+        stores.variables[key] = normalized;
+        // Compatibility: persist script variables so they are visible in the Environment panel.
+        stores.environment[key] = normalized;
       },
       replaceIn: (input: string) => resolver.replaceIn(input),
     },
