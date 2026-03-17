@@ -1718,7 +1718,7 @@ export default function ApiStudioPage() {
       <div
         className="h-full min-h-0 grid"
         style={{
-          gridTemplateColumns: `82px ${sidebarPanelWidth}px 8px minmax(0, 1fr)`,
+          gridTemplateColumns: `68px ${sidebarPanelWidth}px 8px minmax(0, 1fr)`,
         }}
       >
         <aside className="h-full min-h-0 border-r border-subtle bg-[#181818] flex flex-col items-stretch py-2 px-2 gap-1">
@@ -1727,18 +1727,21 @@ export default function ApiStudioPage() {
             return (
               <button
                 key={item.id}
-                className={`w-full rounded-lg px-2 py-2.5 text-center transition-all border ${
+                className={`group relative w-full h-12 overflow-visible rounded-lg px-1 py-2 text-center transition-all border ${
                   isActive
                     ? "bg-white/6 border-white/10 text-primary"
                     : "bg-transparent border-transparent text-muted hover:text-secondary hover:bg-white/4"
                 } ${item.enabled === false ? "opacity-55" : ""}`}
+                title={item.label}
                 onClick={() => {
                   if (item.enabled === false) return;
                   setRailSection(item.id);
                 }}
               >
                 <div className="flex justify-center">{item.icon}</div>
-                <p className="text-[11px] mt-1.5 leading-[1.1]">{item.label}</p>
+                <span className="pointer-events-none absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border border-subtle bg-surface-2 px-2 py-1 text-[11px] text-secondary opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 z-20">
+                  {item.label}
+                </span>
               </button>
             );
           })}
